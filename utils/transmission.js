@@ -14,22 +14,27 @@ const z2 = new Complex;
  * @returns {number} transmission coefficient
  */
 export default function transmission(E, V0, l) {
-    k.becomes(-E,0).exp_r(.5);     // k^2 = -E 2m/h^2 
-    b.becomes(V0-E,0).exp_r(.5);   // beta^2 = (V0-E) 2m/h^2
+    k.becomes(-E,0).pow_r(.5);     // k^2 = -E 2m/h^2 
+    b.becomes(V0-E,0).pow_r(.5);   // beta^2 = (V0-E) 2m/h^2
     z1.toOne();
     
+    // M1 = [1, 1; k, -k]
     M[0].set_a(z1).set_b(z1).set_c(k).set_d(k.toOpposite());
 
+    // M2 = [1, 1; b, -b]
     M[1].set_a(z1).set_b(z1).set_c(b).set_d(b.toOpposite());
 
-    z1.eq(b).mul(l).exponentiate();  // e^(b*l)
+    z1.eq(b).mul(l).intoExp();  // exp(b*l)
     
+    // M3 = [exp(b*l), exp(-b*l); b*exp(b*l), -b*exp(-b*l)]
     M[2].set_a(z1).set_c(z2.eq(z1).mul(b)).set_b(z1.toReciprocal()).set_d(z2.eq(z1).mul(b).toOpposite());
 
-    z1.eq(k).mul(l).exponentiate();  // e^(k*l)
+    z1.eq(k).mul(l).intoExp();  // exp(k*l)
 
+    // M4 = [exp(k*l), exp(-k*l); k*exp(k*l), -k*exp(-k*l)]
     M[3].set_a(z1).set_c(z2.eq(z1).mul(k)).set_b(z1.toReciprocal()).set_d(z2.eq(z1).mul(k).toOpposite());
 
+    // inv(M1)*M2*inv(M3)*M4
     M[0].toInverse().mul(M[1]).mul(M[2].toInverse()).mul(M[3]).get_a(z1);
     return 1/z1.squareModulus;
 }

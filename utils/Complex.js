@@ -92,15 +92,13 @@ export default class Complex {
      * @param {Complex} c complex power
      * @param {Number} [k=0] determines angle
      */
-    exp(c, k=0) {
-        return this.logarize(k).mul(c).exponentiate();
-    }
+    pow(c, k=0) { return this.intoLog(k).mul(c).intoExp(); }
     /**
      * Exponentiation: z = z^r
      * @param {Complex} r real power
      * @param {Number} [k=0] determines angle
      */
-    exp_r(r, k=0) {
+    pow_r(r, k=0) {
         var mod = Math.pow(this.real*this.real + this.imag*this.imag, r/2); 
         var arg = Math.atan2(this.imag, this.real) + k*2*Math.PI;
         this.real = mod * Math.cos(r * arg);
@@ -108,10 +106,12 @@ export default class Complex {
         return this;
     }
     /**@param {Number} n integer power */
-    exp_n(n) {
-        if(n == 0) return this.becomes(1, 0);
-        const real = this.real, imag = this.imag;
-        var end = n, t;
+    pow_n(n) {
+        if(n == 0) return this.toOne();
+        const real = this.real;
+        const imag = this.imag;
+        var end = n
+        var t;
         if(n<0) {
             end = -n;
             this.toReciprocal();
@@ -123,40 +123,26 @@ export default class Complex {
         }
         return this;
     }
-    exponentiate() {
+    intoExp() {
         var mod = Math.exp(this.real);
         this.real = mod * Math.cos(this.imag);
         this.imag = mod * Math.sin(this.imag);
         return this;
     }
-    logarize(k=0) {
+    intoLog(k=0) {
         var r = Math.log(this.real*this.real + this.imag*this.imag);
         var i = Math.atan2(this.imag, this.real) + k*2*Math.PI;
         this.real = r * .5;
         this.imag = i;
         return this;
     }
-    intoSqrt() {
-        if(this.imag == 0) {
-            if(this.real >= 0) this.real = Math.sqrt(this.real);
-            else {
-                this.imag = Math.sqrt(-this.real);
-                this.real = 0;
-            }
-        } else {
-            var a = Math.sqrt((Math.sqrt(this.squareModulus)+this.real)/2);
-            this.real = a;
-            this.imag /= a;
-        }
-        return this;
-    }
-    intoSine() {
+    intoSin() {
         var i = Math.cos(this.real)*Math.sinh(this.imag);
         this.real = Math.sin(this.real)*Math.cosh(this.imag);
         this.imag = i;
         return this;
     }
-    intoCosine() {
+    intoCos() {
         var i = -Math.sin(this.real)*Math.sinh(this.imag);
         this.real = Math.cos(this.real)*Math.cosh(this.imag);
         this.imag = i;
@@ -201,6 +187,7 @@ export default class Complex {
     }
     get squareModulus() { return this.real*this.real + this.imag*this.imag }
     /**
+     * Copies a complex number into a new one
      * @param {Complex} z 
      * @returns 
      */

@@ -88,22 +88,18 @@ export default class Matrix2x2 {
     /**
      * Multiplies another matrix by overwriting itself
      * @param {Matrix2x2} m 
+     * @returns
      */
     mul(m) {
-        // a = (a*a') + b*c';
-        // b = a*b' + (b*d');
-        // c = (c*a') + d*c';
-        // d = c*b' + (d*d');
+        this.z1.eq(this.#b).mul(m.#c);  // b*c'
+        this.z2.eq(this.#a).mul(m.#b);  // a*b'
+        this.#a.mul(m.#a).add(this.z1); // a*a' + b*c'
+        this.#b.mul(m.#d).add(this.z2); // b*d' + a*b'
 
-        this.z1.eq(this.#b).mul(m.#c);
-        this.z2.eq(this.#a).mul(m.#b);
-        this.#a.mul(m.#a).add(this.z1);
-        this.#b.mul(m.#d).add(this.z2);
-
-        this.z1.eq(this.#d).mul(m.#c);
-        this.z2.eq(this.#c).mul(m.#b);
-        this.#c.mul(m.#a).add(this.z1);
-        this.#d.mul(m.#d).add(this.z2);
+        this.z1.eq(this.#d).mul(m.#c);  // d*c'
+        this.z2.eq(this.#c).mul(m.#b);  // c*b'
+        this.#c.mul(m.#a).add(this.z1); // c*a' + d*c'
+        this.#d.mul(m.#d).add(this.z2); // d*d' + c*b'
 
         return this;
     }
@@ -130,7 +126,7 @@ export default class Matrix2x2 {
      */
     static copy(m) { return new Matrix2x2().set_a(m.#a).set_b(m.#b).set_c(m.#c).set_d(m.#d) }
     /**
-     * Multiples multiple matrices, returning a new one
+     * Multiplies several matrices, returning a new one
      * @param {Matrix2x2}
      */
     static multiply(...m) {
@@ -140,5 +136,13 @@ export default class Matrix2x2 {
         return res;
     }
 }
+/**
+ * Utility complex number: do not use.\
+ * Defined inside prototype to save marginal lookup time
+ */
 Matrix2x2.prototype.z1 = new Complex();
+/**
+ * Utility complex number: do not use.\
+ * Defined inside prototype to save marginal lookup time
+ */
 Matrix2x2.prototype.z2 = new Complex();

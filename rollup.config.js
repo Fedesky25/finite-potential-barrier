@@ -3,7 +3,7 @@ import css from 'rollup-plugin-css-only'
 import resolve from '@rollup/plugin-node-resolve'
 
 export default {
-    input: './svelte/editor/Main.js',
+    input: './components/App.js',
     output: {
         format: 'iife',
         name: 'app',
