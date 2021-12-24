@@ -1,6 +1,7 @@
 lockfileVersion: 5.3
 
 specifiers:
+  '@rollup/plugin-alias': ^3.1.8
   '@rollup/plugin-node-resolve': ^13.1.1
   rollup: ^2.61.1
   rollup-plugin-css-only: ^3.1.0
@@ -8,6 +9,7 @@ specifiers:
   svelte: ^3.44.3
 
 devDependencies:
+  '@rollup/plugin-alias': 3.1.8_rollup@2.61.1
   '@rollup/plugin-node-resolve': 13.1.1_rollup@2.61.1
   rollup: 2.61.1
   rollup-plugin-css-only: 3.1.0_rollup@2.61.1
@@ -15,6 +17,16 @@ devDependencies:
   svelte: 3.44.3
 
 packages:
+
+  /@rollup/plugin-alias/3.1.8_rollup@2.61.1:
+    resolution: {integrity: sha512-tf7HeSs/06wO2LPqKNY3Ckbvy0JRe7Jyn98bXnt/gfrxbe+AJucoNJlsEVi9sdgbQtXemjbakCpO/76JVgnHpA==}
+    engines: {node: '>=8.0.0'}
+    peerDependencies:
+      rollup: ^1.20.0||^2.0.0
+    dependencies:
+      rollup: 2.61.1
+      slash: 3.0.0
+    dev: true
 
   /@rollup/plugin-node-resolve/13.1.1_rollup@2.61.1:
     resolution: {integrity: sha512-6QKtRevXLrmEig9UiMYt2fSvee9TyltGRfw+qSs6xjUnxwjOzTOqy+/Lpxsgjb8mJn1EQNbCDAvt89O4uzL5kw==}
@@ -171,6 +183,11 @@ packages:
     hasBin: true
     optionalDependencies:
       fsevents: 2.3.2
+    dev: true
+
+  /slash/3.0.0:
+    resolution: {integrity: sha512-g9Q1haeby36OSStwb4ntCGGGaKsaVSjQ68fBxoQcutl5fS1vuY18H3wSt3jFyFtrkx+Kz0V1G85A4MyAdDMi2Q==}
+    engines: {node: '>=8'}
     dev: true
 
   /svelte/3.44.3:

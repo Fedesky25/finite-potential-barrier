@@ -1,3 +1,4 @@
 node_modules
 utils/ImpComplex.js
 utils/complex.cpp
+utils/linearScale.js

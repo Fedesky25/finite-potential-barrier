@@ -171,6 +171,7 @@ export default class Complex {
     toOpposite() {
         this.real = -this.real;
         this.imag = -this.imag;
+        return this;
     }
     toString() {
         if(this.real == 0) return this.imag ? nf(this.imag)+'i' : '0';
@@ -219,5 +220,4 @@ export default class Complex {
         return res;
     }
 }
-window.Complex = Complex;
 function nf(n) { return Number.isInteger(n) ? n.toString() : n.toPrecision(3) } 

@@ -303,25 +303,62 @@ var app = (function () {
 
     function get_each_context(ctx, list, i) {
     	const child_ctx = ctx.slice();
-    	child_ctx[14] = list[i];
+    	child_ctx[17] = list[i];
     	return child_ctx;
     }
 
     function get_each_context_1(ctx, list, i) {
     	const child_ctx = ctx.slice();
-    	child_ctx[14] = list[i];
+    	child_ctx[20] = list[i];
     	return child_ctx;
     }
 
-    // (42:2) {#each yTicks as tick}
-    function create_each_block_1(ctx) {
+    function get_each_context_2(ctx, list, i) {
+    	const child_ctx = ctx.slice();
+    	child_ctx[20] = list[i];
+    	return child_ctx;
+    }
+
+    function get_each_context_3(ctx, list, i) {
+    	const child_ctx = ctx.slice();
+    	child_ctx[25] = list[i];
+    	return child_ctx;
+    }
+
+    // (58:2) {#each ls as l}
+    function create_each_block_3(ctx) {
+    	let span;
+    	let t_value = /*l*/ ctx[25] + "";
+    	let t;
+
+    	return {
+    		c() {
+    			span = element("span");
+    			t = text(t_value);
+    		},
+    		m(target, anchor) {
+    			insert(target, span, anchor);
+    			append(span, t);
+    		},
+    		p(ctx, dirty) {
+    			if (dirty & /*ls*/ 32 && t_value !== (t_value = /*l*/ ctx[25] + "")) set_data(t, t_value);
+    		},
+    		d(detaching) {
+    			if (detaching) detach(span);
+    		}
+    	};
+    }
+
+    // (69:2) {#each yTicks as tick}
+    function create_each_block_2(ctx) {
     	let g;
     	let line;
     	let line_x__value;
     	let text_1;
-    	let t_value = /*tick*/ ctx[14] + "";
+    	let t_value = /*tick*/ ctx[20] + "";
     	let t;
     	let text_1_x_value;
+    	let text_1_y_value;
     	let g_transform_value;
 
     	return {
@@ -331,13 +368,13 @@ var app = (function () {
     			text_1 = svg_element("text");
     			t = text(t_value);
     			attr(line, "x1", line_x__value = /*padding*/ ctx[7].left);
-    			attr(line, "x2", /*width*/ ctx[1]);
-    			attr(line, "class", "svelte-190gawr");
+    			attr(line, "x2", /*width*/ ctx[0]);
+    			attr(line, "class", "svelte-77c34z");
     			attr(text_1, "x", text_1_x_value = /*padding*/ ctx[7].left - 8);
-    			attr(text_1, "y", "+4");
-    			attr(text_1, "class", "svelte-190gawr");
-    			attr(g, "class", "tick svelte-190gawr");
-    			attr(g, "transform", g_transform_value = "translate(0, " + -/*tick*/ ctx[14] * /*height*/ ctx[2] + ")");
+    			attr(text_1, "y", text_1_y_value = 0);
+    			attr(text_1, "class", "svelte-77c34z");
+    			attr(g, "class", "tick svelte-77c34z");
+    			attr(g, "transform", g_transform_value = "translate(0, " + -/*tick*/ ctx[20] * /*height*/ ctx[1] + ")");
     		},
     		m(target, anchor) {
     			insert(target, g, anchor);
@@ -346,11 +383,11 @@ var app = (function () {
     			append(text_1, t);
     		},
     		p(ctx, dirty) {
-    			if (dirty & /*width*/ 2) {
-    				attr(line, "x2", /*width*/ ctx[1]);
+    			if (dirty & /*width*/ 1) {
+    				attr(line, "x2", /*width*/ ctx[0]);
     			}
 
-    			if (dirty & /*height*/ 4 && g_transform_value !== (g_transform_value = "translate(0, " + -/*tick*/ ctx[14] * /*height*/ ctx[2] + ")")) {
+    			if (dirty & /*height*/ 2 && g_transform_value !== (g_transform_value = "translate(0, " + -/*tick*/ ctx[20] * /*height*/ ctx[1] + ")")) {
     				attr(g, "transform", g_transform_value);
     			}
     		},
@@ -360,13 +397,13 @@ var app = (function () {
     	};
     }
 
-    // (52:2) {#each xTicks as tick}
-    function create_each_block(ctx) {
+    // (79:2) {#each xTicks as tick}
+    function create_each_block_1(ctx) {
     	let g;
     	let line;
     	let line_y__value;
     	let text_1;
-    	let t_value = /*tick*/ ctx[14] + "";
+    	let t_value = /*tick*/ ctx[20] + "";
     	let t;
     	let text_1_y_value;
     	let g_transform_value;
@@ -378,12 +415,12 @@ var app = (function () {
     			text_1 = svg_element("text");
     			t = text(t_value);
     			attr(line, "y1", line_y__value = /*padding*/ ctx[7].bottom);
-    			attr(line, "y2", /*height*/ ctx[2]);
-    			attr(line, "class", "svelte-190gawr");
-    			attr(text_1, "y", text_1_y_value = /*height*/ ctx[2] - /*padding*/ ctx[7].bottom + 16);
-    			attr(text_1, "class", "svelte-190gawr");
-    			attr(g, "class", "tick svelte-190gawr");
-    			attr(g, "transform", g_transform_value = "translate(" + /*tick*/ ctx[14] / /*maxE*/ ctx[4] * /*width*/ ctx[1] + ",0)");
+    			attr(line, "y2", /*height*/ ctx[1]);
+    			attr(line, "class", "svelte-77c34z");
+    			attr(text_1, "y", text_1_y_value = /*height*/ ctx[1] - /*padding*/ ctx[7].bottom + 16);
+    			attr(text_1, "class", "svelte-77c34z");
+    			attr(g, "class", "tick svelte-77c34z");
+    			attr(g, "transform", g_transform_value = "translate(" + /*tick*/ ctx[20] / /*maxE*/ ctx[3] * /*width*/ ctx[0] + ",0)");
     		},
     		m(target, anchor) {
     			insert(target, g, anchor);
@@ -392,22 +429,42 @@ var app = (function () {
     			append(text_1, t);
     		},
     		p(ctx, dirty) {
-    			if (dirty & /*height*/ 4) {
-    				attr(line, "y2", /*height*/ ctx[2]);
+    			if (dirty & /*height*/ 2) {
+    				attr(line, "y2", /*height*/ ctx[1]);
     			}
 
-    			if (dirty & /*xTicks*/ 64 && t_value !== (t_value = /*tick*/ ctx[14] + "")) set_data(t, t_value);
+    			if (dirty & /*xTicks*/ 64 && t_value !== (t_value = /*tick*/ ctx[20] + "")) set_data(t, t_value);
 
-    			if (dirty & /*height*/ 4 && text_1_y_value !== (text_1_y_value = /*height*/ ctx[2] - /*padding*/ ctx[7].bottom + 16)) {
+    			if (dirty & /*height*/ 2 && text_1_y_value !== (text_1_y_value = /*height*/ ctx[1] - /*padding*/ ctx[7].bottom + 16)) {
     				attr(text_1, "y", text_1_y_value);
     			}
 
-    			if (dirty & /*xTicks, maxE, width*/ 82 && g_transform_value !== (g_transform_value = "translate(" + /*tick*/ ctx[14] / /*maxE*/ ctx[4] * /*width*/ ctx[1] + ",0)")) {
+    			if (dirty & /*xTicks, maxE, width*/ 73 && g_transform_value !== (g_transform_value = "translate(" + /*tick*/ ctx[20] / /*maxE*/ ctx[3] * /*width*/ ctx[0] + ",0)")) {
     				attr(g, "transform", g_transform_value);
     			}
     		},
     		d(detaching) {
     			if (detaching) detach(g);
+    		}
+    	};
+    }
+
+    // (87:1) {#each graphs as graph}
+    function create_each_block(ctx) {
+    	let path;
+    	let path_d_value;
+
+    	return {
+    		c() {
+    			path = svg_element("path");
+    			attr(path, "d", path_d_value = /*graph*/ ctx[17]);
+    		},
+    		m(target, anchor) {
+    			insert(target, path, anchor);
+    		},
+    		p: noop,
+    		d(detaching) {
+    			if (detaching) detach(path);
     		}
     	};
     }
@@ -425,19 +482,36 @@ var app = (function () {
     	let t4;
     	let input2;
     	let t5;
+    	let div;
+    	let t6;
+    	let t7;
     	let svg_1;
     	let g0;
     	let g1;
     	let mounted;
     	let dispose;
-    	let each_value_1 = /*yTicks*/ ctx[8];
+    	let each_value_3 = /*ls*/ ctx[5];
+    	let each_blocks_3 = [];
+
+    	for (let i = 0; i < each_value_3.length; i += 1) {
+    		each_blocks_3[i] = create_each_block_3(get_each_context_3(ctx, each_value_3, i));
+    	}
+
+    	let each_value_2 = /*yTicks*/ ctx[10];
+    	let each_blocks_2 = [];
+
+    	for (let i = 0; i < each_value_2.length; i += 1) {
+    		each_blocks_2[i] = create_each_block_2(get_each_context_2(ctx, each_value_2, i));
+    	}
+
+    	let each_value_1 = /*xTicks*/ ctx[6];
     	let each_blocks_1 = [];
 
     	for (let i = 0; i < each_value_1.length; i += 1) {
     		each_blocks_1[i] = create_each_block_1(get_each_context_1(ctx, each_value_1, i));
     	}
 
-    	let each_value = /*xTicks*/ ctx[6];
+    	let each_value = /*graphs*/ ctx[8];
     	let each_blocks = [];
 
     	for (let i = 0; i < each_value.length; i += 1) {
@@ -458,14 +532,26 @@ var app = (function () {
     			t4 = text("Barrier length [Å]\r\n    ");
     			input2 = element("input");
     			t5 = space();
+    			div = element("div");
+
+    			for (let i = 0; i < each_blocks_3.length; i += 1) {
+    				each_blocks_3[i].c();
+    			}
+
+    			t6 = space();
+    			t7 = space();
     			svg_1 = svg_element("svg");
     			g0 = svg_element("g");
+
+    			for (let i = 0; i < each_blocks_2.length; i += 1) {
+    				each_blocks_2[i].c();
+    			}
+
+    			g1 = svg_element("g");
 
     			for (let i = 0; i < each_blocks_1.length; i += 1) {
     				each_blocks_1[i].c();
     			}
-
-    			g1 = svg_element("g");
 
     			for (let i = 0; i < each_blocks.length; i += 1) {
     				each_blocks[i].c();
@@ -479,69 +565,123 @@ var app = (function () {
     			attr(input1, "max", "20");
     			attr(input2, "type", "number");
     			attr(input2, "min", "0");
-    			attr(g0, "class", "axis y-axis svelte-190gawr");
-    			attr(g1, "class", "axis x-axis svelte-190gawr");
-    			attr(svg_1, "class", "svelte-190gawr");
+    			attr(div, "class", "lengths svelte-77c34z");
+    			attr(g0, "class", "axis y-axis svelte-77c34z");
+    			attr(g1, "class", "axis x-axis svelte-77c34z");
+    			attr(svg_1, "class", "svelte-77c34z");
     		},
     		m(target, anchor) {
     			insert(target, label0, anchor);
     			append(label0, t0);
     			append(label0, input0);
-    			set_input_value(input0, /*maxE*/ ctx[4]);
+    			set_input_value(input0, /*maxE*/ ctx[3]);
     			insert(target, t1, anchor);
     			insert(target, label1, anchor);
     			append(label1, t2);
     			append(label1, input1);
-    			set_input_value(input1, /*V0*/ ctx[5]);
+    			set_input_value(input1, /*V0*/ ctx[4]);
     			insert(target, t3, anchor);
     			insert(target, label2, anchor);
     			append(label2, t4);
     			append(label2, input2);
-    			set_input_value(input2, /*l*/ ctx[0]);
-    			insert(target, t5, anchor);
+    			append(label2, t5);
+    			append(label2, div);
+
+    			for (let i = 0; i < each_blocks_3.length; i += 1) {
+    				each_blocks_3[i].m(div, null);
+    			}
+
+    			insert(target, t6, anchor);
+    			insert(target, t7, anchor);
     			insert(target, svg_1, anchor);
     			append(svg_1, g0);
 
-    			for (let i = 0; i < each_blocks_1.length; i += 1) {
-    				each_blocks_1[i].m(g0, null);
+    			for (let i = 0; i < each_blocks_2.length; i += 1) {
+    				each_blocks_2[i].m(g0, null);
     			}
 
     			append(svg_1, g1);
 
-    			for (let i = 0; i < each_blocks.length; i += 1) {
-    				each_blocks[i].m(g1, null);
+    			for (let i = 0; i < each_blocks_1.length; i += 1) {
+    				each_blocks_1[i].m(g1, null);
     			}
 
-    			/*svg_1_binding*/ ctx[13](svg_1);
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].m(svg_1, null);
+    			}
+
+    			/*svg_1_binding*/ ctx[14](svg_1);
 
     			if (!mounted) {
     				dispose = [
-    					listen(window, "resize", /*resize*/ ctx[9]),
-    					listen(input0, "change", /*input0_change_input_handler*/ ctx[10]),
-    					listen(input0, "input", /*input0_change_input_handler*/ ctx[10]),
-    					listen(input1, "change", /*input1_change_input_handler*/ ctx[11]),
-    					listen(input1, "input", /*input1_change_input_handler*/ ctx[11]),
-    					listen(input2, "input", /*input2_input_handler*/ ctx[12])
+    					listen(window, "resize", /*resize*/ ctx[11]),
+    					listen(input0, "change", /*input0_change_input_handler*/ ctx[12]),
+    					listen(input0, "input", /*input0_change_input_handler*/ ctx[12]),
+    					listen(input1, "change", /*input1_change_input_handler*/ ctx[13]),
+    					listen(input1, "input", /*input1_change_input_handler*/ ctx[13]),
+    					listen(input2, "change", /*addLength*/ ctx[9])
     				];
 
     				mounted = true;
     			}
     		},
     		p(ctx, [dirty]) {
-    			if (dirty & /*maxE*/ 16) {
-    				set_input_value(input0, /*maxE*/ ctx[4]);
+    			if (dirty & /*maxE*/ 8) {
+    				set_input_value(input0, /*maxE*/ ctx[3]);
     			}
 
-    			if (dirty & /*V0*/ 32) {
-    				set_input_value(input1, /*V0*/ ctx[5]);
+    			if (dirty & /*V0*/ 16) {
+    				set_input_value(input1, /*V0*/ ctx[4]);
     			}
 
-    			if (dirty & /*l*/ 1 && to_number(input2.value) !== /*l*/ ctx[0]) {
-    				set_input_value(input2, /*l*/ ctx[0]);
+    			if (dirty & /*ls*/ 32) {
+    				each_value_3 = /*ls*/ ctx[5];
+    				let i;
+
+    				for (i = 0; i < each_value_3.length; i += 1) {
+    					const child_ctx = get_each_context_3(ctx, each_value_3, i);
+
+    					if (each_blocks_3[i]) {
+    						each_blocks_3[i].p(child_ctx, dirty);
+    					} else {
+    						each_blocks_3[i] = create_each_block_3(child_ctx);
+    						each_blocks_3[i].c();
+    						each_blocks_3[i].m(div, null);
+    					}
+    				}
+
+    				for (; i < each_blocks_3.length; i += 1) {
+    					each_blocks_3[i].d(1);
+    				}
+
+    				each_blocks_3.length = each_value_3.length;
     			}
 
-    			if (dirty & /*yTicks, height, padding, width*/ 390) {
-    				each_value_1 = /*yTicks*/ ctx[8];
+    			if (dirty & /*yTicks, height, padding, width*/ 1155) {
+    				each_value_2 = /*yTicks*/ ctx[10];
+    				let i;
+
+    				for (i = 0; i < each_value_2.length; i += 1) {
+    					const child_ctx = get_each_context_2(ctx, each_value_2, i);
+
+    					if (each_blocks_2[i]) {
+    						each_blocks_2[i].p(child_ctx, dirty);
+    					} else {
+    						each_blocks_2[i] = create_each_block_2(child_ctx);
+    						each_blocks_2[i].c();
+    						each_blocks_2[i].m(g0, null);
+    					}
+    				}
+
+    				for (; i < each_blocks_2.length; i += 1) {
+    					each_blocks_2[i].d(1);
+    				}
+
+    				each_blocks_2.length = each_value_2.length;
+    			}
+
+    			if (dirty & /*xTicks, maxE, width, height, padding*/ 203) {
+    				each_value_1 = /*xTicks*/ ctx[6];
     				let i;
 
     				for (i = 0; i < each_value_1.length; i += 1) {
@@ -552,7 +692,7 @@ var app = (function () {
     					} else {
     						each_blocks_1[i] = create_each_block_1(child_ctx);
     						each_blocks_1[i].c();
-    						each_blocks_1[i].m(g0, null);
+    						each_blocks_1[i].m(g1, null);
     					}
     				}
 
@@ -563,8 +703,8 @@ var app = (function () {
     				each_blocks_1.length = each_value_1.length;
     			}
 
-    			if (dirty & /*xTicks, maxE, width, height, padding*/ 214) {
-    				each_value = /*xTicks*/ ctx[6];
+    			if (dirty & /*graphs*/ 256) {
+    				each_value = /*graphs*/ ctx[8];
     				let i;
 
     				for (i = 0; i < each_value.length; i += 1) {
@@ -575,7 +715,7 @@ var app = (function () {
     					} else {
     						each_blocks[i] = create_each_block(child_ctx);
     						each_blocks[i].c();
-    						each_blocks[i].m(g1, null);
+    						each_blocks[i].m(svg_1, null);
     					}
     				}
 
@@ -594,11 +734,14 @@ var app = (function () {
     			if (detaching) detach(label1);
     			if (detaching) detach(t3);
     			if (detaching) detach(label2);
-    			if (detaching) detach(t5);
+    			destroy_each(each_blocks_3, detaching);
+    			if (detaching) detach(t6);
+    			if (detaching) detach(t7);
     			if (detaching) detach(svg_1);
+    			destroy_each(each_blocks_2, detaching);
     			destroy_each(each_blocks_1, detaching);
     			destroy_each(each_blocks, detaching);
-    			/*svg_1_binding*/ ctx[13](null);
+    			/*svg_1_binding*/ ctx[14](null);
     			mounted = false;
     			run_all(dispose);
     		}
@@ -621,60 +764,61 @@ var app = (function () {
     	let V0 = 5;
 
     	/** barrier length [A] */
-    	let l = 0;
+    	let ls = [];
+
+    	let graphs = [];
+
+    	function addLength(e) {
+    		const t = e.target;
+    		var v = +t.value;
+    		t.value = '';
+    		if (v <= 0) return;
+    		ls.push(v);
+    		$$invalidate(5, ls);
+    	}
 
     	const yTicks = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0];
 
     	function resize() {
-    		$$invalidate(1, { width, height } = svg.getBoundingClientRect(), width, $$invalidate(2, height));
+    		$$invalidate(0, { width, height } = svg.getBoundingClientRect(), width, $$invalidate(1, height));
     	}
 
     	onMount(resize);
 
     	function input0_change_input_handler() {
     		maxE = to_number(this.value);
-    		$$invalidate(4, maxE);
+    		$$invalidate(3, maxE);
     	}
 
     	function input1_change_input_handler() {
     		V0 = to_number(this.value);
-    		$$invalidate(5, V0);
-    	}
-
-    	function input2_input_handler() {
-    		l = to_number(this.value);
-    		$$invalidate(0, l);
+    		$$invalidate(4, V0);
     	}
 
     	function svg_1_binding($$value) {
     		binding_callbacks[$$value ? 'unshift' : 'push'](() => {
     			svg = $$value;
-    			$$invalidate(3, svg);
+    			$$invalidate(2, svg);
     		});
     	}
-
-    	$$self.$$.update = () => {
-    		if ($$self.$$.dirty & /*l*/ 1) {
-    			if (l < 0) $$invalidate(0, l = 0.1);
-    		}
-    	};
 
     	$$invalidate(6, xTicks = []);
 
     	return [
-    		l,
     		width,
     		height,
     		svg,
     		maxE,
     		V0,
+    		ls,
     		xTicks,
     		padding,
+    		graphs,
+    		addLength,
     		yTicks,
     		resize,
     		input0_change_input_handler,
     		input1_change_input_handler,
-    		input2_input_handler,
     		svg_1_binding
     	];
     }

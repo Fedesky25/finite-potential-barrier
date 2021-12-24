@@ -1,89 +1,15 @@
-import Complex from "./Complex";
-
-const t1 = new Complex();
-const t2 = new Complex();
+import Complex from "./Complex.js";
 
 export default class Matrix2x2 {
-    #a = new Complex();
-    #b = new Complex();
-    #c = new Complex();
-    #d = new Complex();
     /**
      * Constructs a new 2x2 complex matrix of the form [a, b; c, d]
      * @constructor
      */
-    constructor() {}
-    /**
-     * Sets the a component of the matrix
-     * @param {Complex} z 
-     * @returns 
-     */
-    set_a(z) {
-        this.#a.eq(z);
-        return this;
-    }
-    /**
-     * Sets the b component of the matrix
-     * @param {Complex} z 
-     * @returns 
-     */
-    set_b(z) {
-        this.#b.eq(z);
-        return this;
-    }
-    /**
-     * Sets the c component of the matrix
-     * @param {Complex} z 
-     * @returns 
-     */
-    set_c(z) {
-        this.#c.eq(z);
-        return this;
-    }
-    /**
-     * Sets the d component of the matrix
-     * @param {Complex} z 
-     * @returns 
-     */
-    set_d(z) {
-        this.#d.eq(z);
-        return this;
-    }
-    /**
-     * Sets the value of z equal to the component a
-     * @param {Complex} z 
-     * @returns 
-     */
-    get_a(z) { 
-        z.eq(this.#a);
-        return this;
-    }
-    /**
-     * Sets the value of z equal to the component a
-     * @param {Complex} z 
-     * @returns 
-     */
-    get_b(z) { 
-        z.eq(this.#b);
-        return this;
-    }
-    /**
-     * Sets the value of z equal to the component a
-     * @param {Complex} z 
-     * @returns 
-     */
-    get_c(z) { 
-        z.eq(this.#c);
-        return this;
-    }
-    /**
-     * Sets the value of z equal to the component a
-     * @param {Complex} z 
-     * @returns 
-     */
-    get_d(z) { 
-        z.eq(this.#d);
-        return this;
+    constructor() {
+        this.a = new Complex();
+        this.b = new Complex();
+        this.c = new Complex();
+        this.d = new Complex();
     }
     /**
      * Multiplies another matrix by overwriting itself
@@ -91,15 +17,15 @@ export default class Matrix2x2 {
      * @returns
      */
     mul(m) {
-        this.z1.eq(this.#b).mul(m.#c);  // b*c'
-        this.z2.eq(this.#a).mul(m.#b);  // a*b'
-        this.#a.mul(m.#a).add(this.z1); // a*a' + b*c'
-        this.#b.mul(m.#d).add(this.z2); // b*d' + a*b'
+        this.z1.eq(this.b).mul(m.c);  // b*c'
+        this.z2.eq(this.a).mul(m.b);  // a*b'
+        this.a.mul(m.a).add(this.z1); // a*a' + b*c'
+        this.b.mul(m.d).add(this.z2); // b*d' + a*b'
 
-        this.z1.eq(this.#d).mul(m.#c);  // d*c'
-        this.z2.eq(this.#c).mul(m.#b);  // c*b'
-        this.#c.mul(m.#a).add(this.z1); // c*a' + d*c'
-        this.#d.mul(m.#d).add(this.z2); // d*d' + c*b'
+        this.z1.eq(this.d).mul(m.c);  // d*c'
+        this.z2.eq(this.c).mul(m.b);  // c*b'
+        this.c.mul(m.a).add(this.z1); // c*a' + d*c'
+        this.d.mul(m.d).add(this.z2); // d*d' + c*b'
 
         return this;
     }
@@ -108,15 +34,14 @@ export default class Matrix2x2 {
      * @returns 
      */
     toInverse() {
-        this.z1.eq(this.#b).mul(this.#c);
-        this.z2.eq(this.#a).mul(this.#d).sub(this.z1); // determinant
+        this.z1.eq(this.b).mul(this.c);
+        this.z2.eq(this.a).mul(this.d).sub(this.z1); // determinant
 
-        var t = this.#a.div(det);
-        this.#a = this.#d.div(det);
-        this.#d = t;
-        t = this.#c.div(det).toOpposite();
-        this.#c = this.#d.div(det).toOpposite();
-        this.#d = t;
+        var t = this.a.div(this.z2);
+        this.a = this.d.div(this.z2);
+        this.d = t;
+        this.b.toOpposite().div(this.z2);
+        this.c.toOpposite().div(this.z2);
 
         return this;
     }
@@ -124,7 +49,7 @@ export default class Matrix2x2 {
      * Copies a matrix into a new one
      * @param {Matrix2x2} m 
      */
-    static copy(m) { return new Matrix2x2().set_a(m.#a).set_b(m.#b).set_c(m.#c).set_d(m.#d) }
+    static copy(m) { return new Matrix2x2().set_a(m.a).set_b(m.b).set_c(m.c).set_d(m.d) }
     /**
      * Multiplies several matrices, returning a new one
      * @param {Matrix2x2}
