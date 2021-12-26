@@ -48,6 +48,7 @@ function compute(l) {
  */
 export function transmission(E, V0, l) {
     k.becomes(-E,0).pow_r(.5);     // k^2 = -E 2m/h^2 
+    if(Math.abs(E-V0) < Number.EPSILON) return 1/k.mul_r(l).intoExp().squareModulus;
     b.becomes(V0-E,0).pow_r(.5);   // beta^2 = (V0-E) 2m/h^2
     return compute(l);
 }
@@ -67,9 +68,39 @@ export function table_E_l(E, V0, l) {
     const res = new Array(LEN_E);
     for(i=0; i<LEN_E; i++) {
         k.becomes(-E[i],0).pow_r(.5);
+        if(Math.abs(V0-E[i]) < 2*Number.EPSILON) {
+            console.log(E[i]);
+            const s = 1/k.mul_r(l).intoExp().squareModulus;
+            for(j=0; j<LEN_l; j++) res[i][j] = s;
+        } else {
+            b.becomes(V0-E[i],0).pow_r(.5);
+            res[i] = new Array(LEN_l);
+            for(j=0; j<LEN_l; j++) res[i][j] = compute(l[j]);
+        }
+    }
+    return res;
+}
+
+/**
+ * Computes a table of array of the trasmission
+ * coeffienciente of an array of lengths
+ * @param {number[]} E 
+ * @param {number} V0 
+ * @param {number[]} l 
+ * @returns {number[][]}
+ */
+export function table_l_E(E, V0, l) {
+    var i;
+    var j;
+    var v;
+    const LEN_E = E.length;
+    const LEN_l = l.length;
+    const res = new Array(LEN_l);
+    for(i=0; i<LEN_l; i++) res[i] = [];
+    for(i=0; i<LEN_E; i++) {
+        k.becomes(-E[i],0).pow_r(.5);
         b.becomes(V0-E[i],0).pow_r(.5);
-        res[i] = new Array(LEN_l);
-        for(j=0; j<LEN_l; j++) res[i][j] = compute(l[j]);
+        for(j=0; j<LEN_l; j++) res[j].push(compute(l[j]));
     }
     return res;
 }
