@@ -84,9 +84,9 @@ export function table_E_l(E, V0, l) {
 /**
  * Computes a table of array of the trasmission
  * coeffienciente of an array of lengths
- * @param {number[]} E 
- * @param {number} V0 
- * @param {number[]} l 
+ * @param {number[]} E energy values [Ry]
+ * @param {number} V0 barrier potential [Ry]
+ * @param {number[]} l barrier lengths [a.u.]
  * @returns {number[][]}
  */
 export function table_l_E(E, V0, l) {

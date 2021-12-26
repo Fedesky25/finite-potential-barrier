@@ -1068,9 +1068,9 @@ var app = (function () {
     /**
      * Computes a table of array of the trasmission
      * coeffienciente of an array of lengths
-     * @param {number[]} E 
-     * @param {number} V0 
-     * @param {number[]} l 
+     * @param {number[]} E energy values [Ry]
+     * @param {number} V0 barrier potential [Ry]
+     * @param {number[]} l barrier lengths [a.u.]
      * @returns {number[][]}
      */
     function table_l_E(E, V0, l) {
@@ -1169,6 +1169,21 @@ var app = (function () {
 
     function randomColor() {
         return "#" + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0').toUpperCase();
+    }
+
+    const eV2Ry = 0.0734986176;
+    const A2au = 1.8897259886;
+
+    /**
+     * Converts the array given from eV values to Rydberg
+     * @param {number[]} arr array of eV energy values
+     * @param {number} len number of values
+     * @returns {number[]}
+     */
+    function convert_eV_to_Ry(arr, len) {
+        const res = new Array(len);
+        for(var i=0; i<len; i++) res[i] = arr[i] * 0.0734986176;
+        return res;
     }
 
     const subscriber_queue = [];
@@ -1839,7 +1854,7 @@ var app = (function () {
     	return child_ctx;
     }
 
-    // (76:2) {#each graphs as g, i}
+    // (79:2) {#each graphs as g, i}
     function create_each_block_1(ctx) {
     	let div;
     	let input;
@@ -1922,7 +1937,7 @@ var app = (function () {
     	};
     }
 
-    // (87:1) {#if V0 > minE && V0 < maxE}
+    // (90:1) {#if V0 > minE && V0 < maxE}
     function create_if_block(ctx) {
     	let dataplot;
     	let current;
@@ -1964,7 +1979,7 @@ var app = (function () {
     	};
     }
 
-    // (90:1) {#each graphs as g}
+    // (93:1) {#each graphs as g}
     function create_each_block(ctx) {
     	let dataplot;
     	let current;
@@ -2007,7 +2022,7 @@ var app = (function () {
     	};
     }
 
-    // (86:0) <Axis min_x={minE} max_x={maxE} min_y={0} max_y={1}>
+    // (89:0) <Axis min_x={minE} max_x={maxE} min_y={0} max_y={1}>
     function create_default_slot(ctx) {
     	let t;
     	let each_1_anchor;
@@ -2179,7 +2194,7 @@ var app = (function () {
     		c() {
     			div2 = element("div");
     			h30 = element("h3");
-    			h30.textContent = "Energy values [Ry]";
+    			h30.textContent = "Energy values [eV]";
     			t1 = space();
     			div0 = element("div");
     			label0 = element("label");
@@ -2193,7 +2208,7 @@ var app = (function () {
     			input1 = element("input");
     			t7 = space();
     			h31 = element("h3");
-    			h31.textContent = "Barrier potential [Ry]";
+    			h31.textContent = "Barrier potential [eV]";
     			t9 = space();
     			input2 = element("input");
     			t10 = space();
@@ -2363,6 +2378,8 @@ var app = (function () {
     	};
     }
 
+    const POINTS = 300;
+
     function forceBounds(node) {
     	function change(e) {
     		const t = e.target;
@@ -2395,7 +2412,7 @@ var app = (function () {
 
     	function addGraph(l) {
     		const g = { l, color: randomColor(), y: [] };
-    		for (var i = 0; i <= 200; i++) g.y.push(transmission(energies[i], V0, l));
+    		for (var i = 0; i <= POINTS; i++) g.y.push(transmission(energies[i] * eV2Ry, V0 * eV2Ry, l * A2au));
     		graphs.push(g);
     		$$invalidate(4, graphs);
     	}
@@ -2408,7 +2425,7 @@ var app = (function () {
 
     	function allGraphs() {
     		if (graphs.length == 0) return;
-    		const gs = table_l_E(energies, V0, graphs.map(g => g.l));
+    		const gs = table_l_E(convert_eV_to_Ry(energies, POINTS), V0 * eV2Ry, graphs.map(g => g.l * A2au));
     		const LEN = graphs.length;
     		for (var i = 0; i < LEN; i++) $$invalidate(4, graphs[i].y = gs[i], graphs);
     	}
@@ -2436,7 +2453,8 @@ var app = (function () {
 
     	$$self.$$.update = () => {
     		if ($$self.$$.dirty & /*minE, maxE, V0*/ 7) {
-    			$$invalidate(3, energies = linearSpaceH(minE, maxE, 200, [0, V0]));
+    			/** energis [eV] at which to compute the transmission */
+    			$$invalidate(3, energies = linearSpaceH(minE, maxE, POINTS, [0, V0]));
     		}
 
     		if ($$self.$$.dirty & /*energies*/ 8) {

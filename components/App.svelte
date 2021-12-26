@@ -4,9 +4,12 @@
 	import { transmission, table_l_E } from '@utils/transmission.js';
 	import { linearSpaceH } from '@utils/linear.js';
 	import randomColor from '@utils/randomColor.js';
+	import { convert_eV_to_Ry, eV2Ry, A2au } from '@utils/convert.js';
 
 	import Axis from './Axis.svelte';
 	import DataPlot from './DataPlot.svelte';
+
+	const POINTS = 300;
 
 	/** maximum Energy [eV] */
     let minE = 0;
@@ -14,13 +17,14 @@
     let maxE = 15;
     /** barrier poential [eV] */
     let V0 = 5;
-	$: energies = linearSpaceH(minE, maxE, 200, [0, V0]);
+	/** energis [eV] at which to compute the transmission */
+	$: energies = linearSpaceH(minE, maxE, POINTS, [0, V0]);
 	/**@type {{l: number, color: string, y: number[]}[]}*/
 	let graphs = [];
 
 	function addGraph(l) {
 		const g = {l, color: randomColor(), y: []};
-		for(var i=0; i<=200; i++) g.y.push(transmission(energies[i], V0, l));
+		for(var i=0; i<=POINTS; i++) g.y.push(transmission(energies[i]*eV2Ry, V0*eV2Ry, l*A2au));
 		graphs.push(g);
 		graphs = graphs;
 	}
@@ -31,7 +35,7 @@
 	}
 	function allGraphs() {
 		if(graphs.length == 0) return;
-		const gs = table_l_E(energies, V0, graphs.map(g => g.l));
+		const gs = table_l_E(convert_eV_to_Ry(energies, POINTS), V0*eV2Ry, graphs.map(g => g.l*A2au));
 		const LEN = graphs.length;
 		for(var i=0; i<LEN; i++) graphs[i].y = gs[i];
 	}
@@ -44,7 +48,6 @@
 		if(v <= 0) return;
 		addGraph(v);
 	}
-
 	function forceBounds(node) {
 		function change(e) {
 			const t = e.target;
@@ -61,14 +64,14 @@
 
 
 <div class="inputs">
-	<h3>Energy values [Ry]</h3>
+	<h3>Energy values [eV]</h3>
 	<div class="grid2by2">
 		<label for="#minE">Minimum:</label>
 		<input type="number" id="minE" min="0" value="0" max={maxE-1} use:forceBounds on:safe-change={e => minE = e.detail}>
 		<label for="#maxE">Maximum:</label>
 		<input type="number" id="maxE" min={minE+1} value="15" use:forceBounds on:safe-change={e => maxE = e.detail}>
 	</div>
-	<h3>Barrier potential [Ry]</h3>
+	<h3>Barrier potential [eV]</h3>
 	<input type="range" min="0.25" max="20" step="0.25" bind:value={V0}> {V0}
 	<h3>Barrier length [&Aring;]</h3>
 	<input type="number" min="0" on:change={addLength}>
