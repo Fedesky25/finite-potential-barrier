@@ -1238,32 +1238,32 @@ var app = (function () {
 
     function get_each_context$1(ctx, list, i) {
     	const child_ctx = ctx.slice();
-    	child_ctx[18] = list[i];
+    	child_ctx[22] = list[i];
     	return child_ctx;
     }
 
     function get_each_context_1$1(ctx, list, i) {
     	const child_ctx = ctx.slice();
-    	child_ctx[18] = list[i];
+    	child_ctx[22] = list[i];
     	return child_ctx;
     }
 
     function get_each_context_2(ctx, list, i) {
     	const child_ctx = ctx.slice();
-    	child_ctx[18] = list[i];
+    	child_ctx[22] = list[i];
     	return child_ctx;
     }
 
     function get_each_context_3(ctx, list, i) {
     	const child_ctx = ctx.slice();
-    	child_ctx[18] = list[i];
+    	child_ctx[22] = list[i];
     	return child_ctx;
     }
 
-    // (50:4) {#each yTicks as tick}
+    // (60:4) {#each yTicks as tick}
     function create_each_block_3(ctx) {
     	let div;
-    	let t_value = /*tick*/ ctx[18].toPrecision(3) + "";
+    	let t_value = /*tick*/ ctx[22].toPrecision(3) + "";
     	let t;
 
     	return {
@@ -1271,17 +1271,17 @@ var app = (function () {
     			div = element("div");
     			t = text(t_value);
     			attr(div, "class", "y-tick svelte-14o56r9");
-    			set_style(div, "--t", /*yScale*/ ctx[6](/*tick*/ ctx[18]) + "px");
+    			set_style(div, "--t", /*yScale*/ ctx[6](/*tick*/ ctx[22]) + "px");
     		},
     		m(target, anchor) {
     			insert(target, div, anchor);
     			append(div, t);
     		},
     		p(ctx, dirty) {
-    			if (dirty & /*yTicks*/ 8 && t_value !== (t_value = /*tick*/ ctx[18].toPrecision(3) + "")) set_data(t, t_value);
+    			if (dirty & /*yTicks*/ 8 && t_value !== (t_value = /*tick*/ ctx[22].toPrecision(3) + "")) set_data(t, t_value);
 
     			if (dirty & /*yTicks*/ 8) {
-    				set_style(div, "--t", /*yScale*/ ctx[6](/*tick*/ ctx[18]) + "px");
+    				set_style(div, "--t", /*yScale*/ ctx[6](/*tick*/ ctx[22]) + "px");
     			}
     		},
     		d(detaching) {
@@ -1290,10 +1290,10 @@ var app = (function () {
     	};
     }
 
-    // (53:4) {#each xTicks as tick}
+    // (63:4) {#each xTicks as tick}
     function create_each_block_2(ctx) {
     	let div;
-    	let t_value = /*tick*/ ctx[18].toPrecision(3) + "";
+    	let t_value = /*tick*/ ctx[22].toPrecision(3) + "";
     	let t;
 
     	return {
@@ -1301,17 +1301,17 @@ var app = (function () {
     			div = element("div");
     			t = text(t_value);
     			attr(div, "class", "x-tick svelte-14o56r9");
-    			set_style(div, "--t", /*xScale*/ ctx[5](/*tick*/ ctx[18]) + "px");
+    			set_style(div, "--t", /*xScale*/ ctx[5](/*tick*/ ctx[22]) + "px");
     		},
     		m(target, anchor) {
     			insert(target, div, anchor);
     			append(div, t);
     		},
     		p(ctx, dirty) {
-    			if (dirty & /*xTicks*/ 16 && t_value !== (t_value = /*tick*/ ctx[18].toPrecision(3) + "")) set_data(t, t_value);
+    			if (dirty & /*xTicks*/ 16 && t_value !== (t_value = /*tick*/ ctx[22].toPrecision(3) + "")) set_data(t, t_value);
 
     			if (dirty & /*xTicks*/ 16) {
-    				set_style(div, "--t", /*xScale*/ ctx[5](/*tick*/ ctx[18]) + "px");
+    				set_style(div, "--t", /*xScale*/ ctx[5](/*tick*/ ctx[22]) + "px");
     			}
     		},
     		d(detaching) {
@@ -1320,7 +1320,7 @@ var app = (function () {
     	};
     }
 
-    // (58:12) {#each yTicks as tick}
+    // (68:12) {#each yTicks as tick}
     function create_each_block_1$1(ctx) {
     	let line;
     	let line_x__value;
@@ -1331,7 +1331,7 @@ var app = (function () {
     			line = svg_element("line");
     			attr(line, "x1", pad);
     			attr(line, "x2", line_x__value = /*width*/ ctx[0] - pad);
-    			attr(line, "transform", line_transform_value = "translate(0, " + /*yScale*/ ctx[6](/*tick*/ ctx[18]) + ")");
+    			attr(line, "transform", line_transform_value = "translate(0, " + /*yScale*/ ctx[6](/*tick*/ ctx[22]) + ")");
     			attr(line, "class", "svelte-14o56r9");
     		},
     		m(target, anchor) {
@@ -1342,7 +1342,7 @@ var app = (function () {
     				attr(line, "x2", line_x__value);
     			}
 
-    			if (dirty & /*yTicks*/ 8 && line_transform_value !== (line_transform_value = "translate(0, " + /*yScale*/ ctx[6](/*tick*/ ctx[18]) + ")")) {
+    			if (dirty & /*yTicks*/ 8 && line_transform_value !== (line_transform_value = "translate(0, " + /*yScale*/ ctx[6](/*tick*/ ctx[22]) + ")")) {
     				attr(line, "transform", line_transform_value);
     			}
     		},
@@ -1352,7 +1352,7 @@ var app = (function () {
     	};
     }
 
-    // (63:12) {#each xTicks as tick}
+    // (73:12) {#each xTicks as tick}
     function create_each_block$1(ctx) {
     	let line;
     	let line_y__value;
@@ -1363,7 +1363,7 @@ var app = (function () {
     			line = svg_element("line");
     			attr(line, "y1", pad);
     			attr(line, "y2", line_y__value = /*height*/ ctx[1] - pad);
-    			attr(line, "transform", line_transform_value = "translate(" + /*xScale*/ ctx[5](/*tick*/ ctx[18]) + ", 0)");
+    			attr(line, "transform", line_transform_value = "translate(" + /*xScale*/ ctx[5](/*tick*/ ctx[22]) + ", 0)");
     			attr(line, "class", "svelte-14o56r9");
     		},
     		m(target, anchor) {
@@ -1374,7 +1374,7 @@ var app = (function () {
     				attr(line, "y2", line_y__value);
     			}
 
-    			if (dirty & /*xTicks*/ 16 && line_transform_value !== (line_transform_value = "translate(" + /*xScale*/ ctx[5](/*tick*/ ctx[18]) + ", 0)")) {
+    			if (dirty & /*xTicks*/ 16 && line_transform_value !== (line_transform_value = "translate(" + /*xScale*/ ctx[5](/*tick*/ ctx[22]) + ", 0)")) {
     				attr(line, "transform", line_transform_value);
     			}
     		},
@@ -1422,8 +1422,8 @@ var app = (function () {
     		each_blocks[i] = create_each_block$1(get_each_context$1(ctx, each_value, i));
     	}
 
-    	const default_slot_template = /*#slots*/ ctx[14].default;
-    	const default_slot = create_slot(default_slot_template, ctx, /*$$scope*/ ctx[13], null);
+    	const default_slot_template = /*#slots*/ ctx[16].default;
+    	const default_slot = create_slot(default_slot_template, ctx, /*$$scope*/ ctx[15], null);
 
     	return {
     		c() {
@@ -1488,7 +1488,7 @@ var app = (function () {
     				default_slot.m(svg_1, null);
     			}
 
-    			/*svg_1_binding*/ ctx[15](svg_1);
+    			/*svg_1_binding*/ ctx[17](svg_1);
     			current = true;
 
     			if (!mounted) {
@@ -1590,15 +1590,15 @@ var app = (function () {
     			}
 
     			if (default_slot) {
-    				if (default_slot.p && (!current || dirty & /*$$scope*/ 8192)) {
+    				if (default_slot.p && (!current || dirty & /*$$scope*/ 32768)) {
     					update_slot_base(
     						default_slot,
     						default_slot_template,
     						ctx,
-    						/*$$scope*/ ctx[13],
+    						/*$$scope*/ ctx[15],
     						!current
-    						? get_all_dirty_from_scope(/*$$scope*/ ctx[13])
-    						: get_slot_changes(default_slot_template, /*$$scope*/ ctx[13], dirty, null),
+    						? get_all_dirty_from_scope(/*$$scope*/ ctx[15])
+    						: get_slot_changes(default_slot_template, /*$$scope*/ ctx[15], dirty, null),
     						null
     					);
     				}
@@ -1620,7 +1620,7 @@ var app = (function () {
     			destroy_each(each_blocks_1, detaching);
     			destroy_each(each_blocks, detaching);
     			if (default_slot) default_slot.d(detaching);
-    			/*svg_1_binding*/ ctx[15](null);
+    			/*svg_1_binding*/ ctx[17](null);
     			mounted = false;
     			dispose();
     		}
@@ -1646,6 +1646,19 @@ var app = (function () {
     	const yScale = linearScale();
     	const ys_store = writable(yScale);
     	setContext("yScale", ys_store.subscribe);
+    	const xPixels = writable(width - 2 * pad);
+    	setContext("xPixels", xPixels.subscribe);
+
+    	function getXPixels() {
+    		return xPixels.subscribe;
+    	}
+
+    	const yPixels = writable(height - 2 * pad);
+    	setContext("yPixels", yPixels.subscribe);
+
+    	function getYPixels() {
+    		return yPixels.subscribe;
+    	}
 
     	/**@type {HTMLSvgElement}*/
     	let svg;
@@ -1680,7 +1693,7 @@ var app = (function () {
     		if ('min_y' in $$props) $$invalidate(10, min_y = $$props.min_y);
     		if ('max_y' in $$props) $$invalidate(11, max_y = $$props.max_y);
     		if ('density' in $$props) $$invalidate(12, density = $$props.density);
-    		if ('$$scope' in $$props) $$invalidate(13, $$scope = $$props.$$scope);
+    		if ('$$scope' in $$props) $$invalidate(15, $$scope = $$props.$$scope);
     	};
 
     	$$self.$$.update = () => {
@@ -1690,6 +1703,14 @@ var app = (function () {
 
     		if ($$self.$$.dirty & /*min_y, max_y, height*/ 3074) {
     			ys_store.set(yScale.domain(min_y, max_y).range(height - pad, pad));
+    		}
+
+    		if ($$self.$$.dirty & /*width*/ 1) {
+    			xPixels.set(width - 2 * pad);
+    		}
+
+    		if ($$self.$$.dirty & /*height*/ 2) {
+    			yPixels.set(height - 2 * pad);
     		}
 
     		if ($$self.$$.dirty & /*min_x, max_x, width, density*/ 4865) {
@@ -1715,6 +1736,8 @@ var app = (function () {
     		min_y,
     		max_y,
     		density,
+    		getXPixels,
+    		getYPixels,
     		$$scope,
     		slots,
     		svg_1_binding
@@ -1730,8 +1753,18 @@ var app = (function () {
     			max_x: 9,
     			min_y: 10,
     			max_y: 11,
-    			density: 12
+    			density: 12,
+    			getXPixels: 13,
+    			getYPixels: 14
     		});
+    	}
+
+    	get getXPixels() {
+    		return this.$$.ctx[13];
+    	}
+
+    	get getYPixels() {
+    		return this.$$.ctx[14];
     	}
     }
 
@@ -2233,20 +2266,20 @@ var app = (function () {
     			attr(input0, "id", "minE");
     			attr(input0, "min", "0");
     			input0.value = "0";
-    			attr(input0, "max", input0_max_value = /*maxE*/ ctx[1] - 1);
+    			attr(input0, "max", input0_max_value = /*maxE*/ ctx[1] - .01);
     			attr(input0, "class", "svelte-1ka0j1c");
     			attr(label1, "for", "#maxE");
     			attr(input1, "type", "number");
     			attr(input1, "id", "maxE");
-    			attr(input1, "min", input1_min_value = /*minE*/ ctx[0] + 1);
+    			attr(input1, "min", input1_min_value = /*minE*/ ctx[0] + .01);
     			input1.value = "15";
     			attr(input1, "class", "svelte-1ka0j1c");
     			attr(div0, "class", "grid2by2 svelte-1ka0j1c");
     			attr(h31, "class", "svelte-1ka0j1c");
     			attr(input2, "type", "range");
-    			attr(input2, "min", "0.25");
+    			attr(input2, "min", "0.05");
     			attr(input2, "max", "20");
-    			attr(input2, "step", "0.25");
+    			attr(input2, "step", "0.05");
     			attr(input2, "class", "svelte-1ka0j1c");
     			attr(h32, "class", "svelte-1ka0j1c");
     			attr(input3, "type", "number");
@@ -2304,11 +2337,11 @@ var app = (function () {
     			}
     		},
     		p(ctx, [dirty]) {
-    			if (!current || dirty & /*maxE*/ 2 && input0_max_value !== (input0_max_value = /*maxE*/ ctx[1] - 1)) {
+    			if (!current || dirty & /*maxE*/ 2 && input0_max_value !== (input0_max_value = /*maxE*/ ctx[1] - .01)) {
     				attr(input0, "max", input0_max_value);
     			}
 
-    			if (!current || dirty & /*minE*/ 1 && input1_min_value !== (input1_min_value = /*minE*/ ctx[0] + 1)) {
+    			if (!current || dirty & /*minE*/ 1 && input1_min_value !== (input1_min_value = /*minE*/ ctx[0] + .01)) {
     				attr(input1, "min", input1_min_value);
     			}
 
@@ -2378,7 +2411,7 @@ var app = (function () {
     	};
     }
 
-    const POINTS = 300;
+    const POINTS = 500;
 
     function forceBounds(node) {
     	function change(e) {

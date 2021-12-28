@@ -9,7 +9,7 @@
 	import Axis from './Axis.svelte';
 	import DataPlot from './DataPlot.svelte';
 
-	const POINTS = 300;
+	const POINTS = 500;
 
 	/** maximum Energy [eV] */
     let minE = 0;
@@ -67,12 +67,12 @@
 	<h3>Energy values [eV]</h3>
 	<div class="grid2by2">
 		<label for="#minE">Minimum:</label>
-		<input type="number" id="minE" min="0" value="0" max={maxE-1} use:forceBounds on:safe-change={e => minE = e.detail}>
+		<input type="number" id="minE" min="0" value="0" max={maxE-.01} use:forceBounds on:safe-change={e => minE = e.detail}>
 		<label for="#maxE">Maximum:</label>
-		<input type="number" id="maxE" min={minE+1} value="15" use:forceBounds on:safe-change={e => maxE = e.detail}>
+		<input type="number" id="maxE" min={minE+.01} value="15" use:forceBounds on:safe-change={e => maxE = e.detail}>
 	</div>
 	<h3>Barrier potential [eV]</h3>
-	<input type="range" min="0.25" max="20" step="0.25" bind:value={V0}> {V0}
+	<input type="range" min="0.05" max="20" step="0.05" bind:value={V0}> {V0}
 	<h3>Barrier length [&Aring;]</h3>
 	<input type="number" min="0" on:change={addLength}>
 	<div class="lengths">

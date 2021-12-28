@@ -24,6 +24,16 @@
     setContext("yScale", ys_store.subscribe);
     $: ys_store.set(yScale.domain(min_y, max_y).range(height-pad, pad));
 
+    const xPixels = writable(width-2*pad);
+    setContext("xPixels", xPixels.subscribe);
+    $: xPixels.set(width-2*pad);
+    export function getXPixels() {return xPixels.subscribe}
+
+    const yPixels = writable(height-2*pad);
+    setContext("yPixels", yPixels.subscribe);
+    $: yPixels.set(height-2*pad);
+    export function getYPixels() {return yPixels.subscribe}
+
     $: xTicks = linearSpace(min_x, max_x, Math.ceil(width/density));
     $: yTicks = linearSpace(min_y, max_y, Math.ceil(height/density))
 
