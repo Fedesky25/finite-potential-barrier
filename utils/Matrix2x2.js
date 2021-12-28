@@ -12,11 +12,11 @@ export default class Matrix2x2 {
         this.d = new Complex();
     }
     /**
-     * Multiplies another matrix by overwriting itself
+     * Multiplies matrix on the left by overwriting itself
      * @param {Matrix2x2} m 
      * @returns
      */
-    mul(m) {
+    mul_right(m) {
         this.z1.eq(this.b).mul(m.c);  // b*c'
         this.z2.eq(this.a).mul(m.b);  // a*b'
         this.a.mul(m.a).add(this.z1); // a*a' + b*c'
@@ -27,6 +27,14 @@ export default class Matrix2x2 {
         this.c.mul(m.a).add(this.z1); // c*a' + d*c'
         this.d.mul(m.d).add(this.z2); // d*d' + c*b'
 
+        return this;
+    }
+    /**
+     * Multiplies matrix on the left by overwriting itself
+     * @param {Matrix2x2} m 
+     * @returns
+     */
+    mul_left(m) {
         return this;
     }
     /**
