@@ -939,7 +939,7 @@ var app = (function () {
         }
     }
     function nf(n) { return Number.isInteger(n) ? n.toString() : n.toPrecision(3) } 
-    // Object.defineProperty(window, "Complex", {value: Complex});
+    if(typeof window !== "undefined") Object.defineProperty(window, "Complex", {value: Complex});
 
     class Matrix2x2 {
         /**
@@ -976,7 +976,7 @@ var app = (function () {
          * @returns
          */
         mul_left(m) {
-            this.z1.eq(m.a).mul(this.c);
+            this.z1.eq(m.b).mul(this.c);
             this.z2.eq(m.c).mul(this.a);
             this.a.mul(m.a).add(this.z1);
             this.c.mul(m.d).add(this.z2);
@@ -1031,6 +1031,8 @@ var app = (function () {
      */
     Matrix2x2.prototype.z2 = new Complex();
 
+    if(typeof window !== "undefined") Object.defineProperty(window, 'Matrix2x2', {value: Matrix2x2});
+
     const M = [new Matrix2x2, new Matrix2x2, new Matrix2x2, new Matrix2x2];
     const k = new Complex;
     const b = new Complex;
@@ -1039,7 +1041,7 @@ var app = (function () {
     function piece1(E, V0) {
         k.becomes(-E,0).pow_r(.5);
         b.becomes(V0-E,0).pow_r(.5);
-        // M1 = [1, 1; k, -k]
+        // M1 = [1, 1; k, -k]^(-1)
         M[0].a.toOne();
         M[0].b.toOne();
         M[0].c.eq(k);

@@ -35,7 +35,7 @@ export default class Matrix2x2 {
      * @returns
      */
     mul_left(m) {
-        this.z1.eq(m.a).mul(this.c);
+        this.z1.eq(m.b).mul(this.c);
         this.z2.eq(m.c).mul(this.a);
         this.a.mul(m.a).add(this.z1);
         this.c.mul(m.d).add(this.z2);
@@ -89,3 +89,5 @@ Matrix2x2.prototype.z1 = new Complex();
  * Defined inside prototype to save marginal lookup time
  */
 Matrix2x2.prototype.z2 = new Complex();
+
+if(typeof window !== "undefined") Object.defineProperty(window, 'Matrix2x2', {value: Matrix2x2});

@@ -108,7 +108,7 @@ export function table_l_E(E, V0, l) {
 function piece1(E, V0) {
     k.becomes(-E,0).pow_r(.5);
     b.becomes(V0-E,0).pow_r(.5);
-    // M1 = [1, 1; k, -k]
+    // M1 = [1, 1; k, -k]^(-1)
     M[0].a.toOne();
     M[0].b.toOne();
     M[0].c.eq(k);
