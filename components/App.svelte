@@ -1,15 +1,13 @@
 <script>
 	import { fade } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing'
-	import { transmission, table_l_E } from '@utils/transmission.js';
-	import { linearSpaceH } from '@utils/linear.js';
+	import { table } from '@utils/transmission.js';
 	import randomColor from '@utils/randomColor.js';
-	import { convert_eV_to_Ry, eV2Ry, A2au } from '@utils/convert.js';
 
 	import Axis from './Axis.svelte';
 	import DataPlot from './DataPlot.svelte';
+	import ParametricPlot from './ParametricPlot.svelte';
 
-	const POINTS = 500;
 
 	/** maximum Energy [eV] */
     let minE = 0;
@@ -17,29 +15,20 @@
     let maxE = 15;
     /** barrier poential [eV] */
     let V0 = 5;
-	/** energis [eV] at which to compute the transmission */
-	$: energies = linearSpaceH(minE, maxE, POINTS, [0, V0]);
-	/**@type {{l: number, color: string, y: number[]}[]}*/
-	let graphs = [];
 
+	$: fn = (min, max, sample, params) => table(min, max, sample, V0, params);
+	
+	/**@type {{color: string, parameter: number}[]}*/
+	const opts = [];
 	function addGraph(l) {
-		const g = {l, color: randomColor(), y: []};
-		for(var i=0; i<=POINTS; i++) g.y.push(transmission(energies[i]*eV2Ry, V0*eV2Ry, l*A2au));
-		graphs.push(g);
-		graphs = graphs;
+		opts.push({color: randomColor(), parameter: l});
+		opts = opts;
 	}
 	function removeGraph(e) {
-		const i = +e.target.getAttribute('data-index');
-		graphs.splice(i, 1);
-		graphs = graphs;
+		const i = +e.target.value;
+		opts.splice(i,1);
+		opts = opts;
 	}
-	function allGraphs() {
-		if(graphs.length == 0) return;
-		const gs = table_l_E(convert_eV_to_Ry(energies, POINTS), V0*eV2Ry, graphs.map(g => g.l*A2au));
-		const LEN = graphs.length;
-		for(var i=0; i<LEN; i++) graphs[i].y = gs[i];
-	}
-	$: energies && allGraphs();
 
 	function addLength(e) {
 		const t = e.target;
@@ -76,10 +65,10 @@
 	<h3>Barrier length [&Aring;]</h3>
 	<input type="number" min="0" on:change={addLength}>
 	<div class="lengths">
-		{#each graphs as g, i}
+		{#each opts as o, i}
 			<div class="graph-info" in:fade={{duration: 250, easing: cubicOut}}>
-				<input type="color" bind:value={g.color}>
-				<span>{g.l.toPrecision(3)}</span>
+				<input type="color" bind:value={o.color}>
+				<span>{o.parameter.toPrecision(3)}</span>
 				<button data-index="{i}" on:click={removeGraph} title="Remove graph"></button>
 			</div>
 		{/each}
@@ -90,9 +79,7 @@
 	{#if V0 > minE && V0 < maxE}
 		<DataPlot x={[0, V0, V0, maxE]} y={[0, 0, 1, 1]} color="#999" dash="10" />
 	{/if}
-	{#each graphs as g}
-		<DataPlot x={energies} y={g.y} color={g.color} />
-	{/each}
+	<ParametricPlot fn={fn} options={opts} />
 </Axis>
 
 

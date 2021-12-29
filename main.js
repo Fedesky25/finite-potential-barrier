@@ -1,4 +1,4 @@
-import { table_E_l } from './utils/transmission.js';
+import { table } from './utils/transmission.js';
 import { writeFileSync } from 'fs';
 
 /**@param {number[]} arr */
@@ -15,12 +15,21 @@ function generate(maxE, v0, lengths, points) {
     var i;
     maxE *= 0.0734986176;
     v0 *= 0.0734986176;
-    for(i=0; i<lengths.length; i++) lengths[i] *= 0.529177249;
-    const E = []
-    for(i=0; i<points; i++) E.push(maxE*(i+1)/points);
-    const table = table_E_l(E, v0, lengths);
-    return "E\t" + lengths.map((_, i) => `l_${i}`).join('\t') + '\n' 
-    + table.map((l,i) => `${(E[i]*13.605698066).toPrecision(6)}\t${arrToString(l)}`).join('\n');
+
+    const data = table(0, maxE, points, v0, lengths.map(l => l*0.529177249));
+
+    return "E\t" + lengths.map(l => 'l@'+l.toPrecision(4)).join('\t') + '\n'
+    + data.map(v => {
+        v[0] *= 13.605698066;
+        for(var i=0; i<v.length; i++) v[i].toPrecision(6);
+        return v.join('\t');
+    }).join('\n');
+
+    // const E = []
+    // for(i=0; i<points; i++) E.push(maxE*(i+1)/points);
+    // const table = table_E_l(E, v0, lengths);
+    // return "E\t" + lengths.map((_, i) => `l_${i}`).join('\t') + '\n' 
+    // + table.map((l,i) => `${(E[i]*13.605698066).toPrecision(6)}\t${arrToString(l)}`).join('\n');
 }
 
 

@@ -939,7 +939,7 @@ var app = (function () {
         }
     }
     function nf(n) { return Number.isInteger(n) ? n.toString() : n.toPrecision(3) } 
-    Object.defineProperty(window, "Complex", {value: Complex});
+    // Object.defineProperty(window, "Complex", {value: Complex});
 
     class Matrix2x2 {
         /**
@@ -953,11 +953,11 @@ var app = (function () {
             this.d = new Complex();
         }
         /**
-         * Multiplies another matrix by overwriting itself
+         * Multiplies matrix on the left by overwriting itself
          * @param {Matrix2x2} m 
          * @returns
          */
-        mul(m) {
+        mul_right(m) {
             this.z1.eq(this.b).mul(m.c);  // b*c'
             this.z2.eq(this.a).mul(m.b);  // a*b'
             this.a.mul(m.a).add(this.z1); // a*a' + b*c'
@@ -967,6 +967,24 @@ var app = (function () {
             this.z2.eq(this.c).mul(m.b);  // c*b'
             this.c.mul(m.a).add(this.z1); // c*a' + d*c'
             this.d.mul(m.d).add(this.z2); // d*d' + c*b'
+
+            return this;
+        }
+        /**
+         * Multiplies matrix on the left by overwriting itself
+         * @param {Matrix2x2} m 
+         * @returns
+         */
+        mul_left(m) {
+            this.z1.eq(m.a).mul(this.c);
+            this.z2.eq(m.c).mul(this.a);
+            this.a.mul(m.a).add(this.z1);
+            this.c.mul(m.d).add(this.z2);
+
+            this.z1.eq(m.b).mul(this.d);
+            this.z2.eq(m.c).mul(this.b);
+            this.b.mul(m.a).add(this.z1);
+            this.d.mul(m.d).add(this.z2);
 
             return this;
         }
@@ -1017,173 +1035,114 @@ var app = (function () {
     const k = new Complex;
     const b = new Complex;
 
-    /**
-     * Computes the matrix products, with the current M, b, and k
-     * @param {number} l 
-     * @returns {number}
-     */
-    function compute(l) {
+
+    function piece1(E, V0) {
+        k.becomes(-E,0).pow_r(.5);
+        b.becomes(V0-E,0).pow_r(.5);
         // M1 = [1, 1; k, -k]
         M[0].a.toOne();
         M[0].b.toOne();
         M[0].c.eq(k);
         M[0].d.eq(k).toOpposite();
-
+        M[0].toInverse();
         // M2 = [1, 1; b, -b]
         M[1].a.toOne();
         M[1].b.toOne();
         M[1].c.eq(b);
         M[1].d.eq(b).toOpposite();
-        
+    }
+    function piece2(l) {
         // M3 = [exp(b*l), exp(-b*l); b*exp(b*l), -b*exp(-b*l)]
         M[2].a.eq(b).mul_r(l).intoExp();
         M[2].b.eq(M[2].a).toReciprocal();
         M[2].c.eq(M[2].a).mul(b);
         M[2].d.eq(M[2].b).mul(b).toOpposite();
-
         // M4 = [exp(k*l), exp(-k*l); k*exp(k*l), -k*exp(-k*l)]
         M[3].a.eq(k).mul_r(l).intoExp();
         M[3].b.eq(M[3].a).toReciprocal();
         M[3].c.eq(M[3].a).mul(k);
         M[3].d.eq(M[3].b).mul(k).toOpposite();
 
-        // inv(M1)*M2*inv(M3)*M4
-        M[0].toInverse().mul(M[1]).mul(M[2].toInverse()).mul(M[3]);
-        return 1/M[0].a.squareModulus;
+        M[3].mul_left(M[2].toInverse()).mul_left(M[1]).mul_left(M[0]);
+        return 1/M[3].a.squareModulus;
+    }
+    function piece3(l) {
+        // M2 = [1, -l; 0, 1]
+        M[1].a.toOne();
+        M[1].b.becomes(-l,0);
+        M[1].c.toZero();
+        M[1].d.toOne();
+        // M4 = [exp(k*l), exp(-k*l); k*exp(k*l), -k*exp(-k*l)]
+        M[3].a.eq(k).mul_r(l).intoExp();
+        M[3].b.eq(M[3].a).toReciprocal();
+        M[3].c.eq(M[3].a).mul(k);
+        M[3].d.eq(M[3].b).mul(k).toOpposite();
+
+        M[3].mul_left(M[1]).mul_left(M[0]);
+        return 1/M[3].a.squareModulus;
     }
 
-    /**
-     * @param {number} E energy [Ry]
-     * @param {number} V0 potential [Ry]
-     * @param {number} l barrier width [a.u.]
-     * @returns {number} transmission coefficient
-     */
-    function transmission(E, V0, l) {
-        k.becomes(-E,0).pow_r(.5);     // k^2 = -E 2m/h^2 
-        if(Math.abs(E-V0) < Number.EPSILON) return 1/k.mul_r(l).intoExp().squareModulus;
-        b.becomes(V0-E,0).pow_r(.5);   // beta^2 = (V0-E) 2m/h^2
-        return compute(l);
-    }
+
+    function areFloatEqual(a,b) { return Math.abs((a-b)/a) < 2*Number.EPSILON }
 
     /**
-     * Computes a table of array of the trasmission
-     * coeffienciente of an array of lengths
-     * @param {number[]} E energy values [Ry]
+     * 
+     * @param {number} minE starting energy value [Ry]
+     * @param {number} maxE last energy value [Ry]
+     * @param {number} samples how many values of E to take
      * @param {number} V0 barrier potential [Ry]
-     * @param {number[]} l barrier lengths [a.u.]
-     * @returns {number[][]}
+     * @param {number[]} lengths barrier lengths [a.u.]
+     * @returns {number[][]} samples long array containing [energy, ...transmissions]
      */
-    function table_l_E(E, V0, l) {
+    function table(minE, maxE, samples, V0, lengths) {
+        const LEN_l = lengths.length;
+        const res = new Array(samples);
         var i;
         var j;
-        const LEN_E = E.length;
-        const LEN_l = l.length;
-        const res = new Array(LEN_l);
-        for(i=0; i<LEN_l; i++) res[i] = [];
-        for(i=0; i<LEN_E; i++) {
-            k.becomes(-E[i],0).pow_r(.5);
-            b.becomes(V0-E[i],0).pow_r(.5);
-            for(j=0; j<LEN_l; j++) res[j].push(compute(l[j]));
+        var E;
+        if(minE <= 0) {
+            samples *= maxE / (maxE-minE);
+            minE = .1 * maxE / samples; 
         }
-        return res;
-    }
 
-    /**
-     * @typedef {{
-     * (value: number) => number, 
-     * domain: (min: number, max: number) => linearScale,
-     * range: (min: number, max: number) => linearScale
-     * }} linearScale
-     */
-    /**
-     * Constructs a new linear scale
-     * @returns {linearScale}
-     */
-    function linearScale() {
-        var from_min = 0;
-        var from_dim = 1;
-        var to_min = 0;
-        var to_dim = 1;
-        const compute = v => (v-from_min)/from_dim*to_dim + to_min;
-        compute.domain = (min, max) => {
-            from_min = min;
-            from_dim = max-min;
-            return compute;
-        };
-        compute.range = (min, max) => {
-            to_min = min;
-            to_dim = max-min;
-            return compute;
-        };
-        return compute;
-    }
+        const span = (maxE-minE)/(samples-1);
+        const V0_index = Math.round((V0-minE)/span);
+        const through_V0 = V0_index >= 0 && V0_index < samples && areFloatEqual(V0, minE+span*V0_index);
+        const stop_index = through_V0 ? V0_index : samples;
 
-    /**
-     * Creates an array array with equispaced values such that
-     * they divide in equal spaces the range between min and max
-     * @param {number} min minimum range value (included)
-     * @param {number} max maximum range value (included)
-     * @param {number} spaces number of equal spaces
-     * @returns {number[]} threshold values of each equispaced interval (spaces+1 long)
-     */
-    function linearSpace(min, max, spaces) {
-        const res = new Array(spaces+1);
-        const span = (max-min)/spaces;
-        for(var i=0; i<=spaces; i++) res[i] = span*i + min;
-        return res;
-    }
-
-    /**
-     * Creates an array array with equispaced values such that
-     * they divide the range between min and max in equal spaces
-     * and they avoid the secified holes
-     * @param {number} min minimum range value (included)
-     * @param {number} max maximum range value (included)
-     * @param {number} spaces number of equal spaces
-     * @param {number[]} holes list of (unique) numbers to skip
-     * @returns {number[]} threshold values of each equispaced interval (spaces+1 long)
-     */
-    function linearSpaceH(min, max, spaces, holes) {
-        const res = new Array(spaces+1);
-        const span = (max-min)/spaces;
-        var i;
-        for(i=0; i<=spaces; i++) res[i] = span*i + min;
-        if(!holes) return res;
-        const H = holes.length;
-        var p;
-        var d;
-        const err = span * 0.05;
-        for(i=0; i<H; i++) {
-            if(holes[i] < min || holes[i] > max) continue
-            p = Math.floor((holes[i] - min) / span);
-            d = holes[i] - res[p];
-            if(d < err) res[p] += d + err;
-            else {
-                p += 1;
-                d = res[p] - holes[i];
-                if(d < err) res[p] -= d + err;
-            }
+        for(i=0; i<stop_index; i++) {
+            E = minE + span*i;
+            res[i] = new Array(LEN_l+1);
+            res[i][0] = E;
+            piece1(E, V0);
+            for(j=0; j<LEN_l; j++) res[i][j+1] = piece2(lengths[j]);
+        }
+        if(!through_V0) return res;
+        
+        // special case: energy = potential
+        k.becomes(-V0,0).pow_r(.5);
+        // M1 = [1, 1; k, -k]
+        M[0].a.toOne();
+        M[0].b.toOne();
+        M[0].c.eq(k);
+        M[0].d.eq(k).toOpposite();
+        M[0].toInverse();
+        res[i] = new Array(LEN_l+1);
+        res[i][0] = V0;
+        for(j=0; j<LEN_l; j++) res[i][j+1] = piece3(lengths[j]);
+        // normal calculation again
+        for(i++; i<samples; i++) {
+            E = minE + span*i;
+            res[i] = new Array(LEN_l+1);
+            res[i][0] = E;
+            piece1(E,V0);
+            for(j=0; j<LEN_l; j++) res[i][j+1] = piece2(lengths[j]);
         }
         return res;
     }
 
     function randomColor() {
         return "#" + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0').toUpperCase();
-    }
-
-    const eV2Ry = 0.0734986176;
-    const A2au = 1.8897259886;
-
-    /**
-     * Converts the array given from eV values to Rydberg
-     * @param {number[]} arr array of eV energy values
-     * @param {number} len number of values
-     * @returns {number[]}
-     */
-    function convert_eV_to_Ry(arr, len) {
-        const res = new Array(len);
-        for(var i=0; i<len; i++) res[i] = arr[i] * 0.0734986176;
-        return res;
     }
 
     const subscriber_queue = [];
@@ -1234,36 +1193,81 @@ var app = (function () {
         return { set, update, subscribe };
     }
 
+    /**
+     * @typedef {{
+     * (value: number) => number, 
+     * domain: (min: number, max: number) => linearScale,
+     * range: (min: number, max: number) => linearScale
+     * }} linearScale
+     */
+    /**
+     * Constructs a new linear scale
+     * @returns {linearScale}
+     */
+    function linearScale() {
+        var from_min = 0;
+        var from_dim = 1;
+        var to_min = 0;
+        var to_dim = 1;
+        const compute = v => (v-from_min)/from_dim*to_dim + to_min;
+        compute.domain = (min, max) => {
+            from_min = min;
+            from_dim = max-min;
+            return compute;
+        };
+        compute.range = (min, max) => {
+            to_min = min;
+            to_dim = max-min;
+            return compute;
+        };
+        return compute;
+    }
+
+    /**
+     * Creates an array array with equispaced values such that
+     * they divide in equal spaces the range between min and max
+     * @param {number} min minimum range value (included)
+     * @param {number} max maximum range value (included)
+     * @param {number} spaces number of equal spaces
+     * @returns {number[]} threshold values of each equispaced interval (spaces+1 long)
+     */
+    function linearSpace(min, max, spaces) {
+        const res = new Array(spaces+1);
+        const span = (max-min)/spaces;
+        for(var i=0; i<=spaces; i++) res[i] = span*i + min;
+        return res;
+    }
+
     /* components\Axis.svelte generated by Svelte v3.44.3 */
 
-    function get_each_context$1(ctx, list, i) {
+    function get_each_context$2(ctx, list, i) {
     	const child_ctx = ctx.slice();
-    	child_ctx[22] = list[i];
+    	child_ctx[24] = list[i];
     	return child_ctx;
     }
 
-    function get_each_context_1$1(ctx, list, i) {
+    function get_each_context_1(ctx, list, i) {
     	const child_ctx = ctx.slice();
-    	child_ctx[22] = list[i];
+    	child_ctx[24] = list[i];
     	return child_ctx;
     }
 
     function get_each_context_2(ctx, list, i) {
     	const child_ctx = ctx.slice();
-    	child_ctx[22] = list[i];
+    	child_ctx[24] = list[i];
     	return child_ctx;
     }
 
     function get_each_context_3(ctx, list, i) {
     	const child_ctx = ctx.slice();
-    	child_ctx[22] = list[i];
+    	child_ctx[24] = list[i];
     	return child_ctx;
     }
 
-    // (60:4) {#each yTicks as tick}
+    // (68:4) {#each yTicks as tick}
     function create_each_block_3(ctx) {
     	let div;
-    	let t_value = /*tick*/ ctx[22].toPrecision(3) + "";
+    	let t_value = /*tick*/ ctx[24].toPrecision(3) + "";
     	let t;
 
     	return {
@@ -1271,17 +1275,17 @@ var app = (function () {
     			div = element("div");
     			t = text(t_value);
     			attr(div, "class", "y-tick svelte-14o56r9");
-    			set_style(div, "--t", /*yScale*/ ctx[6](/*tick*/ ctx[22]) + "px");
+    			set_style(div, "--t", /*yScale*/ ctx[6](/*tick*/ ctx[24]) + "px");
     		},
     		m(target, anchor) {
     			insert(target, div, anchor);
     			append(div, t);
     		},
     		p(ctx, dirty) {
-    			if (dirty & /*yTicks*/ 8 && t_value !== (t_value = /*tick*/ ctx[22].toPrecision(3) + "")) set_data(t, t_value);
+    			if (dirty[0] & /*yTicks*/ 8 && t_value !== (t_value = /*tick*/ ctx[24].toPrecision(3) + "")) set_data(t, t_value);
 
-    			if (dirty & /*yTicks*/ 8) {
-    				set_style(div, "--t", /*yScale*/ ctx[6](/*tick*/ ctx[22]) + "px");
+    			if (dirty[0] & /*yTicks*/ 8) {
+    				set_style(div, "--t", /*yScale*/ ctx[6](/*tick*/ ctx[24]) + "px");
     			}
     		},
     		d(detaching) {
@@ -1290,10 +1294,10 @@ var app = (function () {
     	};
     }
 
-    // (63:4) {#each xTicks as tick}
+    // (71:4) {#each xTicks as tick}
     function create_each_block_2(ctx) {
     	let div;
-    	let t_value = /*tick*/ ctx[22].toPrecision(3) + "";
+    	let t_value = /*tick*/ ctx[24].toPrecision(3) + "";
     	let t;
 
     	return {
@@ -1301,17 +1305,17 @@ var app = (function () {
     			div = element("div");
     			t = text(t_value);
     			attr(div, "class", "x-tick svelte-14o56r9");
-    			set_style(div, "--t", /*xScale*/ ctx[5](/*tick*/ ctx[22]) + "px");
+    			set_style(div, "--t", /*xScale*/ ctx[5](/*tick*/ ctx[24]) + "px");
     		},
     		m(target, anchor) {
     			insert(target, div, anchor);
     			append(div, t);
     		},
     		p(ctx, dirty) {
-    			if (dirty & /*xTicks*/ 16 && t_value !== (t_value = /*tick*/ ctx[22].toPrecision(3) + "")) set_data(t, t_value);
+    			if (dirty[0] & /*xTicks*/ 16 && t_value !== (t_value = /*tick*/ ctx[24].toPrecision(3) + "")) set_data(t, t_value);
 
-    			if (dirty & /*xTicks*/ 16) {
-    				set_style(div, "--t", /*xScale*/ ctx[5](/*tick*/ ctx[22]) + "px");
+    			if (dirty[0] & /*xTicks*/ 16) {
+    				set_style(div, "--t", /*xScale*/ ctx[5](/*tick*/ ctx[24]) + "px");
     			}
     		},
     		d(detaching) {
@@ -1320,8 +1324,8 @@ var app = (function () {
     	};
     }
 
-    // (68:12) {#each yTicks as tick}
-    function create_each_block_1$1(ctx) {
+    // (76:12) {#each yTicks as tick}
+    function create_each_block_1(ctx) {
     	let line;
     	let line_x__value;
     	let line_transform_value;
@@ -1331,18 +1335,18 @@ var app = (function () {
     			line = svg_element("line");
     			attr(line, "x1", pad);
     			attr(line, "x2", line_x__value = /*width*/ ctx[0] - pad);
-    			attr(line, "transform", line_transform_value = "translate(0, " + /*yScale*/ ctx[6](/*tick*/ ctx[22]) + ")");
+    			attr(line, "transform", line_transform_value = "translate(0, " + /*yScale*/ ctx[6](/*tick*/ ctx[24]) + ")");
     			attr(line, "class", "svelte-14o56r9");
     		},
     		m(target, anchor) {
     			insert(target, line, anchor);
     		},
     		p(ctx, dirty) {
-    			if (dirty & /*width*/ 1 && line_x__value !== (line_x__value = /*width*/ ctx[0] - pad)) {
+    			if (dirty[0] & /*width*/ 1 && line_x__value !== (line_x__value = /*width*/ ctx[0] - pad)) {
     				attr(line, "x2", line_x__value);
     			}
 
-    			if (dirty & /*yTicks*/ 8 && line_transform_value !== (line_transform_value = "translate(0, " + /*yScale*/ ctx[6](/*tick*/ ctx[22]) + ")")) {
+    			if (dirty[0] & /*yTicks*/ 8 && line_transform_value !== (line_transform_value = "translate(0, " + /*yScale*/ ctx[6](/*tick*/ ctx[24]) + ")")) {
     				attr(line, "transform", line_transform_value);
     			}
     		},
@@ -1352,8 +1356,8 @@ var app = (function () {
     	};
     }
 
-    // (73:12) {#each xTicks as tick}
-    function create_each_block$1(ctx) {
+    // (81:12) {#each xTicks as tick}
+    function create_each_block$2(ctx) {
     	let line;
     	let line_y__value;
     	let line_transform_value;
@@ -1363,18 +1367,18 @@ var app = (function () {
     			line = svg_element("line");
     			attr(line, "y1", pad);
     			attr(line, "y2", line_y__value = /*height*/ ctx[1] - pad);
-    			attr(line, "transform", line_transform_value = "translate(" + /*xScale*/ ctx[5](/*tick*/ ctx[22]) + ", 0)");
+    			attr(line, "transform", line_transform_value = "translate(" + /*xScale*/ ctx[5](/*tick*/ ctx[24]) + ", 0)");
     			attr(line, "class", "svelte-14o56r9");
     		},
     		m(target, anchor) {
     			insert(target, line, anchor);
     		},
     		p(ctx, dirty) {
-    			if (dirty & /*height*/ 2 && line_y__value !== (line_y__value = /*height*/ ctx[1] - pad)) {
+    			if (dirty[0] & /*height*/ 2 && line_y__value !== (line_y__value = /*height*/ ctx[1] - pad)) {
     				attr(line, "y2", line_y__value);
     			}
 
-    			if (dirty & /*xTicks*/ 16 && line_transform_value !== (line_transform_value = "translate(" + /*xScale*/ ctx[5](/*tick*/ ctx[22]) + ", 0)")) {
+    			if (dirty[0] & /*xTicks*/ 16 && line_transform_value !== (line_transform_value = "translate(" + /*xScale*/ ctx[5](/*tick*/ ctx[24]) + ", 0)")) {
     				attr(line, "transform", line_transform_value);
     			}
     		},
@@ -1384,7 +1388,7 @@ var app = (function () {
     	};
     }
 
-    function create_fragment$2(ctx) {
+    function create_fragment$3(ctx) {
     	let div;
     	let t0;
     	let t1;
@@ -1412,14 +1416,14 @@ var app = (function () {
     	let each_blocks_1 = [];
 
     	for (let i = 0; i < each_value_1.length; i += 1) {
-    		each_blocks_1[i] = create_each_block_1$1(get_each_context_1$1(ctx, each_value_1, i));
+    		each_blocks_1[i] = create_each_block_1(get_each_context_1(ctx, each_value_1, i));
     	}
 
     	let each_value = /*xTicks*/ ctx[4];
     	let each_blocks = [];
 
     	for (let i = 0; i < each_value.length; i += 1) {
-    		each_blocks[i] = create_each_block$1(get_each_context$1(ctx, each_value, i));
+    		each_blocks[i] = create_each_block$2(get_each_context$2(ctx, each_value, i));
     	}
 
     	const default_slot_template = /*#slots*/ ctx[16].default;
@@ -1496,8 +1500,8 @@ var app = (function () {
     				mounted = true;
     			}
     		},
-    		p(ctx, [dirty]) {
-    			if (dirty & /*yScale, yTicks*/ 72) {
+    		p(ctx, dirty) {
+    			if (dirty[0] & /*yScale, yTicks*/ 72) {
     				each_value_3 = /*yTicks*/ ctx[3];
     				let i;
 
@@ -1520,7 +1524,7 @@ var app = (function () {
     				each_blocks_3.length = each_value_3.length;
     			}
 
-    			if (dirty & /*xScale, xTicks*/ 48) {
+    			if (dirty[0] & /*xScale, xTicks*/ 48) {
     				each_value_2 = /*xTicks*/ ctx[4];
     				let i;
 
@@ -1543,17 +1547,17 @@ var app = (function () {
     				each_blocks_2.length = each_value_2.length;
     			}
 
-    			if (dirty & /*pad, width, yScale, yTicks*/ 73) {
+    			if (dirty[0] & /*width, yScale, yTicks*/ 73) {
     				each_value_1 = /*yTicks*/ ctx[3];
     				let i;
 
     				for (i = 0; i < each_value_1.length; i += 1) {
-    					const child_ctx = get_each_context_1$1(ctx, each_value_1, i);
+    					const child_ctx = get_each_context_1(ctx, each_value_1, i);
 
     					if (each_blocks_1[i]) {
     						each_blocks_1[i].p(child_ctx, dirty);
     					} else {
-    						each_blocks_1[i] = create_each_block_1$1(child_ctx);
+    						each_blocks_1[i] = create_each_block_1(child_ctx);
     						each_blocks_1[i].c();
     						each_blocks_1[i].m(g0, null);
     					}
@@ -1566,17 +1570,17 @@ var app = (function () {
     				each_blocks_1.length = each_value_1.length;
     			}
 
-    			if (dirty & /*pad, height, xScale, xTicks*/ 50) {
+    			if (dirty[0] & /*height, xScale, xTicks*/ 50) {
     				each_value = /*xTicks*/ ctx[4];
     				let i;
 
     				for (i = 0; i < each_value.length; i += 1) {
-    					const child_ctx = get_each_context$1(ctx, each_value, i);
+    					const child_ctx = get_each_context$2(ctx, each_value, i);
 
     					if (each_blocks[i]) {
     						each_blocks[i].p(child_ctx, dirty);
     					} else {
-    						each_blocks[i] = create_each_block$1(child_ctx);
+    						each_blocks[i] = create_each_block$2(child_ctx);
     						each_blocks[i].c();
     						each_blocks[i].m(g1, null);
     					}
@@ -1590,7 +1594,7 @@ var app = (function () {
     			}
 
     			if (default_slot) {
-    				if (default_slot.p && (!current || dirty & /*$$scope*/ 32768)) {
+    				if (default_slot.p && (!current || dirty[0] & /*$$scope*/ 32768)) {
     					update_slot_base(
     						default_slot,
     						default_slot_template,
@@ -1629,7 +1633,7 @@ var app = (function () {
 
     const pad = 2;
 
-    function instance$2($$self, $$props, $$invalidate) {
+    function instance$3($$self, $$props, $$invalidate) {
     	let xTicks;
     	let yTicks;
     	let { $$slots: slots = {}, $$scope } = $$props;
@@ -1659,6 +1663,11 @@ var app = (function () {
     	function getYPixels() {
     		return yPixels.subscribe;
     	}
+
+    	const xRange = writable([min_x, max_x]);
+    	setContext("xRange", xRange.subscribe);
+    	const yRange = writable([min_y, max_y]);
+    	setContext("yRange", yRange.subscribe);
 
     	/**@type {HTMLSvgElement}*/
     	let svg;
@@ -1697,27 +1706,35 @@ var app = (function () {
     	};
 
     	$$self.$$.update = () => {
-    		if ($$self.$$.dirty & /*min_x, max_x, width*/ 769) {
+    		if ($$self.$$.dirty[0] & /*min_x, max_x, width*/ 769) {
     			xs_store.set(xScale.domain(min_x, max_x).range(pad, width - pad));
     		}
 
-    		if ($$self.$$.dirty & /*min_y, max_y, height*/ 3074) {
+    		if ($$self.$$.dirty[0] & /*min_y, max_y, height*/ 3074) {
     			ys_store.set(yScale.domain(min_y, max_y).range(height - pad, pad));
     		}
 
-    		if ($$self.$$.dirty & /*width*/ 1) {
+    		if ($$self.$$.dirty[0] & /*width*/ 1) {
     			xPixels.set(width - 2 * pad);
     		}
 
-    		if ($$self.$$.dirty & /*height*/ 2) {
+    		if ($$self.$$.dirty[0] & /*height*/ 2) {
     			yPixels.set(height - 2 * pad);
     		}
 
-    		if ($$self.$$.dirty & /*min_x, max_x, width, density*/ 4865) {
+    		if ($$self.$$.dirty[0] & /*min_x, max_x*/ 768) {
+    			xRange.set([min_x, max_x]);
+    		}
+
+    		if ($$self.$$.dirty[0] & /*min_y, max_y*/ 3072) {
+    			yRange.set([min_y, max_y]);
+    		}
+
+    		if ($$self.$$.dirty[0] & /*min_x, max_x, width, density*/ 4865) {
     			$$invalidate(4, xTicks = linearSpace(min_x, max_x, Math.ceil(width / density)));
     		}
 
-    		if ($$self.$$.dirty & /*min_y, max_y, height, density*/ 7170) {
+    		if ($$self.$$.dirty[0] & /*min_y, max_y, height, density*/ 7170) {
     			$$invalidate(3, yTicks = linearSpace(min_y, max_y, Math.ceil(height / density)));
     		}
     	};
@@ -1748,15 +1765,24 @@ var app = (function () {
     	constructor(options) {
     		super();
 
-    		init(this, options, instance$2, create_fragment$2, safe_not_equal, {
-    			min_x: 8,
-    			max_x: 9,
-    			min_y: 10,
-    			max_y: 11,
-    			density: 12,
-    			getXPixels: 13,
-    			getYPixels: 14
-    		});
+    		init(
+    			this,
+    			options,
+    			instance$3,
+    			create_fragment$3,
+    			safe_not_equal,
+    			{
+    				min_x: 8,
+    				max_x: 9,
+    				min_y: 10,
+    				max_y: 11,
+    				density: 12,
+    				getXPixels: 13,
+    				getYPixels: 14
+    			},
+    			null,
+    			[-1, -1]
+    		);
     	}
 
     	get getXPixels() {
@@ -1770,7 +1796,7 @@ var app = (function () {
 
     /* components\DataPlot.svelte generated by Svelte v3.44.3 */
 
-    function create_fragment$1(ctx) {
+    function create_fragment$2(ctx) {
     	let path;
     	let path_d_value;
     	let path_transition;
@@ -1835,7 +1861,7 @@ var app = (function () {
     	return g.join(' ');
     }
 
-    function instance$1($$self, $$props, $$invalidate) {
+    function instance$2($$self, $$props, $$invalidate) {
     	let { x = [] } = $$props;
     	let { y = [] } = $$props;
     	let { color = "black" } = $$props;
@@ -1861,7 +1887,7 @@ var app = (function () {
     	constructor(options) {
     		super();
 
-    		init(this, options, instance$1, create_fragment$1, safe_not_equal, {
+    		init(this, options, instance$2, create_fragment$2, safe_not_equal, {
     			x: 0,
     			y: 1,
     			color: 2,
@@ -1871,29 +1897,276 @@ var app = (function () {
     	}
     }
 
+    /* components\ParametricPlot.svelte generated by Svelte v3.44.3 */
+
+    function get_each_context$1(ctx, list, i) {
+    	const child_ctx = ctx.slice();
+    	child_ctx[10] = list[i];
+    	child_ctx[12] = i;
+    	return child_ctx;
+    }
+
+    // (82:0) {#each options as opt, i}
+    function create_each_block$1(ctx) {
+    	let path;
+    	let path_d_value;
+    	let path_stroke_value;
+    	let path_stroke_width_value;
+    	let path_stroke_dasharray_value;
+    	let path_transition;
+    	let current;
+
+    	return {
+    		c() {
+    			path = svg_element("path");
+    			attr(path, "d", path_d_value = /*paths*/ ctx[1][/*i*/ ctx[12]]);
+    			attr(path, "stroke", path_stroke_value = /*opt*/ ctx[10].color);
+    			attr(path, "stroke-width", path_stroke_width_value = /*opt*/ ctx[10].thickness || 2);
+    			attr(path, "stroke-dasharray", path_stroke_dasharray_value = /*opt*/ ctx[10].dash);
+    			attr(path, "fill", "none");
+    		},
+    		m(target, anchor) {
+    			insert(target, path, anchor);
+    			current = true;
+    		},
+    		p(ctx, dirty) {
+    			if (!current || dirty & /*paths*/ 2 && path_d_value !== (path_d_value = /*paths*/ ctx[1][/*i*/ ctx[12]])) {
+    				attr(path, "d", path_d_value);
+    			}
+
+    			if (!current || dirty & /*options*/ 1 && path_stroke_value !== (path_stroke_value = /*opt*/ ctx[10].color)) {
+    				attr(path, "stroke", path_stroke_value);
+    			}
+
+    			if (!current || dirty & /*options*/ 1 && path_stroke_width_value !== (path_stroke_width_value = /*opt*/ ctx[10].thickness || 2)) {
+    				attr(path, "stroke-width", path_stroke_width_value);
+    			}
+
+    			if (!current || dirty & /*options*/ 1 && path_stroke_dasharray_value !== (path_stroke_dasharray_value = /*opt*/ ctx[10].dash)) {
+    				attr(path, "stroke-dasharray", path_stroke_dasharray_value);
+    			}
+    		},
+    		i(local) {
+    			if (current) return;
+
+    			add_render_callback(() => {
+    				if (!path_transition) path_transition = create_bidirectional_transition(path, fade, { duration: 150 }, true);
+    				path_transition.run(1);
+    			});
+
+    			current = true;
+    		},
+    		o(local) {
+    			if (!path_transition) path_transition = create_bidirectional_transition(path, fade, { duration: 150 }, false);
+    			path_transition.run(0);
+    			current = false;
+    		},
+    		d(detaching) {
+    			if (detaching) detach(path);
+    			if (detaching && path_transition) path_transition.end();
+    		}
+    	};
+    }
+
+    function create_fragment$1(ctx) {
+    	let each_1_anchor;
+    	let current;
+    	let each_value = /*options*/ ctx[0];
+    	let each_blocks = [];
+
+    	for (let i = 0; i < each_value.length; i += 1) {
+    		each_blocks[i] = create_each_block$1(get_each_context$1(ctx, each_value, i));
+    	}
+
+    	const out = i => transition_out(each_blocks[i], 1, 1, () => {
+    		each_blocks[i] = null;
+    	});
+
+    	return {
+    		c() {
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].c();
+    			}
+
+    			each_1_anchor = empty();
+    		},
+    		m(target, anchor) {
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].m(target, anchor);
+    			}
+
+    			insert(target, each_1_anchor, anchor);
+    			current = true;
+    		},
+    		p(ctx, [dirty]) {
+    			if (dirty & /*paths, options*/ 3) {
+    				each_value = /*options*/ ctx[0];
+    				let i;
+
+    				for (i = 0; i < each_value.length; i += 1) {
+    					const child_ctx = get_each_context$1(ctx, each_value, i);
+
+    					if (each_blocks[i]) {
+    						each_blocks[i].p(child_ctx, dirty);
+    						transition_in(each_blocks[i], 1);
+    					} else {
+    						each_blocks[i] = create_each_block$1(child_ctx);
+    						each_blocks[i].c();
+    						transition_in(each_blocks[i], 1);
+    						each_blocks[i].m(each_1_anchor.parentNode, each_1_anchor);
+    					}
+    				}
+
+    				group_outros();
+
+    				for (i = each_value.length; i < each_blocks.length; i += 1) {
+    					out(i);
+    				}
+
+    				check_outros();
+    			}
+    		},
+    		i(local) {
+    			if (current) return;
+
+    			for (let i = 0; i < each_value.length; i += 1) {
+    				transition_in(each_blocks[i]);
+    			}
+
+    			current = true;
+    		},
+    		o(local) {
+    			each_blocks = each_blocks.filter(Boolean);
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				transition_out(each_blocks[i]);
+    			}
+
+    			current = false;
+    		},
+    		d(detaching) {
+    			destroy_each(each_blocks, detaching);
+    			if (detaching) detach(each_1_anchor);
+    		}
+    	};
+    }
+
+    function joinMultipleIntoPaths(data, num, xScale, yScale) {
+    	const LEN = data.length;
+    	const paths = [];
+    	var i;
+    	var j;
+    	var piece = 'M' + xScale(data[0][0]) + ',';
+    	for (i = 0; i < num; i++) paths.push(piece + yScale(data[0][i + 1]));
+
+    	for (i = 1; i < LEN; i++) {
+    		piece = 'M' + xScale(data[i][0]) + ',';
+    		for (j = 0; j < num; j++) paths[j] += piece + yScale(data[i][j + 1]);
+    	}
+
+    	return paths;
+    }
+
+    function instance$1($$self, $$props, $$invalidate) {
+    	let { fn } = $$props;
+
+    	/**
+     * @typedef PlotOptions
+     * @property {any} parameter object or value to pass the function
+     * @property {string} color color of the plot
+     * @property {string|number} thickness width of the trace
+     * @property {string} dash dash array
+     */
+    	/**@type {PlotOptions[]}*/
+    	let options = [];
+
+    	/**@type {string[]}*/
+    	let paths = [];
+
+    	let xScale;
+    	let yScale;
+    	let range;
+    	let sample = 0;
+
+    	function recompute() {
+    		if (sample <= 0) return;
+    		const data = fn(range[0], range[1], sample, options.map(v => v.parameter));
+    		$$invalidate(1, paths = joinMultipleIntoPaths(data, options.length, xScale, yScale));
+    	}
+
+    	getContext("xScale")(v => {
+    		xScale = v;
+    		recompute();
+    	});
+
+    	getContext("yScale")(v => {
+    		yScale = v;
+    		recompute();
+    	});
+
+    	getContext("xRange")(v => {
+    		range = v;
+    		recompute();
+    	});
+
+    	getContext("xPixels")(v => {
+    		sample = Math.round(v / 2);
+    		recompute();
+    	});
+
+    	function add(...opts) {
+    		const p = opts.map(v => v.parameter);
+    		const newData = fn(range[0], range[1], sample, p);
+    		paths.push(...joinMultipleIntoPaths(newData, options.length, xScale, yScale));
+    		options.push(p);
+    		$$invalidate(0, options);
+    	}
+
+    	function remove(index) {
+    		paths.splice(index, 1);
+    		options.splice(index, 1);
+    		$$invalidate(0, options);
+    	}
+
+    	$$self.$$set = $$props => {
+    		if ('fn' in $$props) $$invalidate(2, fn = $$props.fn);
+    	};
+
+    	return [options, paths, fn, add, remove];
+    }
+
+    class ParametricPlot extends SvelteComponent {
+    	constructor(options) {
+    		super();
+    		init(this, options, instance$1, create_fragment$1, safe_not_equal, { fn: 2, add: 3, remove: 4 });
+    	}
+
+    	get add() {
+    		return this.$$.ctx[3];
+    	}
+
+    	get remove() {
+    		return this.$$.ctx[4];
+    	}
+    }
+
     /* components\App.svelte generated by Svelte v3.44.3 */
 
     function get_each_context(ctx, list, i) {
     	const child_ctx = ctx.slice();
-    	child_ctx[13] = list[i];
+    	child_ctx[12] = list[i];
+    	child_ctx[13] = list;
+    	child_ctx[14] = i;
     	return child_ctx;
     }
 
-    function get_each_context_1(ctx, list, i) {
-    	const child_ctx = ctx.slice();
-    	child_ctx[13] = list[i];
-    	child_ctx[16] = list;
-    	child_ctx[17] = i;
-    	return child_ctx;
-    }
-
-    // (79:2) {#each graphs as g, i}
-    function create_each_block_1(ctx) {
+    // (68:2) {#each opts as o, i}
+    function create_each_block(ctx) {
     	let div;
     	let input;
     	let t0;
     	let span;
-    	let t1_value = /*g*/ ctx[13].l.toPrecision(3) + "";
+    	let t1_value = /*o*/ ctx[12].parameter.toPrecision(3) + "";
     	let t1;
     	let t2;
     	let button;
@@ -1904,7 +2177,7 @@ var app = (function () {
     	let dispose;
 
     	function input_input_handler() {
-    		/*input_input_handler*/ ctx[10].call(input, /*each_value_1*/ ctx[16], /*i*/ ctx[17]);
+    		/*input_input_handler*/ ctx[10].call(input, /*each_value*/ ctx[13], /*i*/ ctx[14]);
     	}
 
     	return {
@@ -1919,7 +2192,7 @@ var app = (function () {
     			t3 = space();
     			attr(input, "type", "color");
     			attr(input, "class", "svelte-1ka0j1c");
-    			attr(button, "data-index", button_data_index_value = /*i*/ ctx[17]);
+    			attr(button, "data-index", button_data_index_value = /*i*/ ctx[14]);
     			attr(button, "title", "Remove graph");
     			attr(button, "class", "svelte-1ka0j1c");
     			attr(div, "class", "graph-info svelte-1ka0j1c");
@@ -1927,7 +2200,7 @@ var app = (function () {
     		m(target, anchor) {
     			insert(target, div, anchor);
     			append(div, input);
-    			set_input_value(input, /*g*/ ctx[13].color);
+    			set_input_value(input, /*o*/ ctx[12].color);
     			append(div, t0);
     			append(div, span);
     			append(span, t1);
@@ -1947,11 +2220,11 @@ var app = (function () {
     		p(new_ctx, dirty) {
     			ctx = new_ctx;
 
-    			if (dirty & /*graphs*/ 16) {
-    				set_input_value(input, /*g*/ ctx[13].color);
+    			if (dirty & /*opts*/ 8) {
+    				set_input_value(input, /*o*/ ctx[12].color);
     			}
 
-    			if (dirty & /*graphs*/ 16 && t1_value !== (t1_value = /*g*/ ctx[13].l.toPrecision(3) + "")) set_data(t1, t1_value);
+    			if (dirty & /*opts*/ 8 && t1_value !== (t1_value = /*o*/ ctx[12].parameter.toPrecision(3) + "")) set_data(t1, t1_value);
     		},
     		i(local) {
     			if (!div_intro) {
@@ -1970,14 +2243,14 @@ var app = (function () {
     	};
     }
 
-    // (90:1) {#if V0 > minE && V0 < maxE}
+    // (79:1) {#if V0 > minE && V0 < maxE}
     function create_if_block(ctx) {
     	let dataplot;
     	let current;
 
     	dataplot = new DataPlot({
     			props: {
-    				x: [0, /*V0*/ ctx[2], /*V0*/ ctx[2], /*maxE*/ ctx[1]],
+    				x: [0, /*V0*/ ctx[0], /*V0*/ ctx[0], /*maxE*/ ctx[2]],
     				y: [0, 0, 1, 1],
     				color: "#999",
     				dash: "10"
@@ -1994,7 +2267,7 @@ var app = (function () {
     		},
     		p(ctx, dirty) {
     			const dataplot_changes = {};
-    			if (dirty & /*V0, maxE*/ 6) dataplot_changes.x = [0, /*V0*/ ctx[2], /*V0*/ ctx[2], /*maxE*/ ctx[1]];
+    			if (dirty & /*V0, maxE*/ 5) dataplot_changes.x = [0, /*V0*/ ctx[0], /*V0*/ ctx[0], /*maxE*/ ctx[2]];
     			dataplot.$set(dataplot_changes);
     		},
     		i(local) {
@@ -2012,90 +2285,34 @@ var app = (function () {
     	};
     }
 
-    // (93:1) {#each graphs as g}
-    function create_each_block(ctx) {
-    	let dataplot;
+    // (78:0) <Axis min_x={minE} max_x={maxE} min_y={0} max_y={1}>
+    function create_default_slot(ctx) {
+    	let t;
+    	let parametricplot;
     	let current;
+    	let if_block = /*V0*/ ctx[0] > /*minE*/ ctx[1] && /*V0*/ ctx[0] < /*maxE*/ ctx[2] && create_if_block(ctx);
 
-    	dataplot = new DataPlot({
+    	parametricplot = new ParametricPlot({
     			props: {
-    				x: /*energies*/ ctx[3],
-    				y: /*g*/ ctx[13].y,
-    				color: /*g*/ ctx[13].color
+    				fn: /*fn*/ ctx[4],
+    				options: /*opts*/ ctx[3]
     			}
     		});
 
     	return {
     		c() {
-    			create_component(dataplot.$$.fragment);
-    		},
-    		m(target, anchor) {
-    			mount_component(dataplot, target, anchor);
-    			current = true;
-    		},
-    		p(ctx, dirty) {
-    			const dataplot_changes = {};
-    			if (dirty & /*energies*/ 8) dataplot_changes.x = /*energies*/ ctx[3];
-    			if (dirty & /*graphs*/ 16) dataplot_changes.y = /*g*/ ctx[13].y;
-    			if (dirty & /*graphs*/ 16) dataplot_changes.color = /*g*/ ctx[13].color;
-    			dataplot.$set(dataplot_changes);
-    		},
-    		i(local) {
-    			if (current) return;
-    			transition_in(dataplot.$$.fragment, local);
-    			current = true;
-    		},
-    		o(local) {
-    			transition_out(dataplot.$$.fragment, local);
-    			current = false;
-    		},
-    		d(detaching) {
-    			destroy_component(dataplot, detaching);
-    		}
-    	};
-    }
-
-    // (89:0) <Axis min_x={minE} max_x={maxE} min_y={0} max_y={1}>
-    function create_default_slot(ctx) {
-    	let t;
-    	let each_1_anchor;
-    	let current;
-    	let if_block = /*V0*/ ctx[2] > /*minE*/ ctx[0] && /*V0*/ ctx[2] < /*maxE*/ ctx[1] && create_if_block(ctx);
-    	let each_value = /*graphs*/ ctx[4];
-    	let each_blocks = [];
-
-    	for (let i = 0; i < each_value.length; i += 1) {
-    		each_blocks[i] = create_each_block(get_each_context(ctx, each_value, i));
-    	}
-
-    	const out = i => transition_out(each_blocks[i], 1, 1, () => {
-    		each_blocks[i] = null;
-    	});
-
-    	return {
-    		c() {
     			if (if_block) if_block.c();
     			t = space();
-
-    			for (let i = 0; i < each_blocks.length; i += 1) {
-    				each_blocks[i].c();
-    			}
-
-    			each_1_anchor = empty();
+    			create_component(parametricplot.$$.fragment);
     		},
     		m(target, anchor) {
     			if (if_block) if_block.m(target, anchor);
     			insert(target, t, anchor);
-
-    			for (let i = 0; i < each_blocks.length; i += 1) {
-    				each_blocks[i].m(target, anchor);
-    			}
-
-    			insert(target, each_1_anchor, anchor);
+    			mount_component(parametricplot, target, anchor);
     			current = true;
     		},
     		p(ctx, dirty) {
-    			if (/*V0*/ ctx[2] > /*minE*/ ctx[0] && /*V0*/ ctx[2] < /*maxE*/ ctx[1]) {
+    			if (/*V0*/ ctx[0] > /*minE*/ ctx[1] && /*V0*/ ctx[0] < /*maxE*/ ctx[2]) {
     				if (if_block) {
     					if_block.p(ctx, dirty);
 
@@ -2118,58 +2335,26 @@ var app = (function () {
     				check_outros();
     			}
 
-    			if (dirty & /*energies, graphs*/ 24) {
-    				each_value = /*graphs*/ ctx[4];
-    				let i;
-
-    				for (i = 0; i < each_value.length; i += 1) {
-    					const child_ctx = get_each_context(ctx, each_value, i);
-
-    					if (each_blocks[i]) {
-    						each_blocks[i].p(child_ctx, dirty);
-    						transition_in(each_blocks[i], 1);
-    					} else {
-    						each_blocks[i] = create_each_block(child_ctx);
-    						each_blocks[i].c();
-    						transition_in(each_blocks[i], 1);
-    						each_blocks[i].m(each_1_anchor.parentNode, each_1_anchor);
-    					}
-    				}
-
-    				group_outros();
-
-    				for (i = each_value.length; i < each_blocks.length; i += 1) {
-    					out(i);
-    				}
-
-    				check_outros();
-    			}
+    			const parametricplot_changes = {};
+    			if (dirty & /*fn*/ 16) parametricplot_changes.fn = /*fn*/ ctx[4];
+    			if (dirty & /*opts*/ 8) parametricplot_changes.options = /*opts*/ ctx[3];
+    			parametricplot.$set(parametricplot_changes);
     		},
     		i(local) {
     			if (current) return;
     			transition_in(if_block);
-
-    			for (let i = 0; i < each_value.length; i += 1) {
-    				transition_in(each_blocks[i]);
-    			}
-
+    			transition_in(parametricplot.$$.fragment, local);
     			current = true;
     		},
     		o(local) {
     			transition_out(if_block);
-    			each_blocks = each_blocks.filter(Boolean);
-
-    			for (let i = 0; i < each_blocks.length; i += 1) {
-    				transition_out(each_blocks[i]);
-    			}
-
+    			transition_out(parametricplot.$$.fragment, local);
     			current = false;
     		},
     		d(detaching) {
     			if (if_block) if_block.d(detaching);
     			if (detaching) detach(t);
-    			destroy_each(each_blocks, detaching);
-    			if (detaching) detach(each_1_anchor);
+    			destroy_component(parametricplot, detaching);
     		}
     	};
     }
@@ -2205,17 +2390,17 @@ var app = (function () {
     	let current;
     	let mounted;
     	let dispose;
-    	let each_value_1 = /*graphs*/ ctx[4];
+    	let each_value = /*opts*/ ctx[3];
     	let each_blocks = [];
 
-    	for (let i = 0; i < each_value_1.length; i += 1) {
-    		each_blocks[i] = create_each_block_1(get_each_context_1(ctx, each_value_1, i));
+    	for (let i = 0; i < each_value.length; i += 1) {
+    		each_blocks[i] = create_each_block(get_each_context(ctx, each_value, i));
     	}
 
     	axis = new Axis({
     			props: {
-    				min_x: /*minE*/ ctx[0],
-    				max_x: /*maxE*/ ctx[1],
+    				min_x: /*minE*/ ctx[1],
+    				max_x: /*maxE*/ ctx[2],
     				min_y: 0,
     				max_y: 1,
     				$$slots: { default: [create_default_slot] },
@@ -2245,7 +2430,7 @@ var app = (function () {
     			t9 = space();
     			input2 = element("input");
     			t10 = space();
-    			t11 = text(/*V0*/ ctx[2]);
+    			t11 = text(/*V0*/ ctx[0]);
     			t12 = space();
     			h32 = element("h3");
     			h32.textContent = "Barrier length [Å]";
@@ -2266,12 +2451,12 @@ var app = (function () {
     			attr(input0, "id", "minE");
     			attr(input0, "min", "0");
     			input0.value = "0";
-    			attr(input0, "max", input0_max_value = /*maxE*/ ctx[1] - .01);
+    			attr(input0, "max", input0_max_value = /*maxE*/ ctx[2] - .01);
     			attr(input0, "class", "svelte-1ka0j1c");
     			attr(label1, "for", "#maxE");
     			attr(input1, "type", "number");
     			attr(input1, "id", "maxE");
-    			attr(input1, "min", input1_min_value = /*minE*/ ctx[0] + .01);
+    			attr(input1, "min", input1_min_value = /*minE*/ ctx[1] + .01);
     			input1.value = "15";
     			attr(input1, "class", "svelte-1ka0j1c");
     			attr(div0, "class", "grid2by2 svelte-1ka0j1c");
@@ -2304,7 +2489,7 @@ var app = (function () {
     			append(div2, h31);
     			append(div2, t9);
     			append(div2, input2);
-    			set_input_value(input2, /*V0*/ ctx[2]);
+    			set_input_value(input2, /*V0*/ ctx[0]);
     			append(div2, t10);
     			append(div2, t11);
     			append(div2, t12);
@@ -2337,32 +2522,32 @@ var app = (function () {
     			}
     		},
     		p(ctx, [dirty]) {
-    			if (!current || dirty & /*maxE*/ 2 && input0_max_value !== (input0_max_value = /*maxE*/ ctx[1] - .01)) {
+    			if (!current || dirty & /*maxE*/ 4 && input0_max_value !== (input0_max_value = /*maxE*/ ctx[2] - .01)) {
     				attr(input0, "max", input0_max_value);
     			}
 
-    			if (!current || dirty & /*minE*/ 1 && input1_min_value !== (input1_min_value = /*minE*/ ctx[0] + .01)) {
+    			if (!current || dirty & /*minE*/ 2 && input1_min_value !== (input1_min_value = /*minE*/ ctx[1] + .01)) {
     				attr(input1, "min", input1_min_value);
     			}
 
-    			if (dirty & /*V0*/ 4) {
-    				set_input_value(input2, /*V0*/ ctx[2]);
+    			if (dirty & /*V0*/ 1) {
+    				set_input_value(input2, /*V0*/ ctx[0]);
     			}
 
-    			if (!current || dirty & /*V0*/ 4) set_data(t11, /*V0*/ ctx[2]);
+    			if (!current || dirty & /*V0*/ 1) set_data(t11, /*V0*/ ctx[0]);
 
-    			if (dirty & /*removeGraph, graphs*/ 48) {
-    				each_value_1 = /*graphs*/ ctx[4];
+    			if (dirty & /*removeGraph, opts*/ 40) {
+    				each_value = /*opts*/ ctx[3];
     				let i;
 
-    				for (i = 0; i < each_value_1.length; i += 1) {
-    					const child_ctx = get_each_context_1(ctx, each_value_1, i);
+    				for (i = 0; i < each_value.length; i += 1) {
+    					const child_ctx = get_each_context(ctx, each_value, i);
 
     					if (each_blocks[i]) {
     						each_blocks[i].p(child_ctx, dirty);
     						transition_in(each_blocks[i], 1);
     					} else {
-    						each_blocks[i] = create_each_block_1(child_ctx);
+    						each_blocks[i] = create_each_block(child_ctx);
     						each_blocks[i].c();
     						transition_in(each_blocks[i], 1);
     						each_blocks[i].m(div1, null);
@@ -2373,14 +2558,14 @@ var app = (function () {
     					each_blocks[i].d(1);
     				}
 
-    				each_blocks.length = each_value_1.length;
+    				each_blocks.length = each_value.length;
     			}
 
     			const axis_changes = {};
-    			if (dirty & /*minE*/ 1) axis_changes.min_x = /*minE*/ ctx[0];
-    			if (dirty & /*maxE*/ 2) axis_changes.max_x = /*maxE*/ ctx[1];
+    			if (dirty & /*minE*/ 2) axis_changes.min_x = /*minE*/ ctx[1];
+    			if (dirty & /*maxE*/ 4) axis_changes.max_x = /*maxE*/ ctx[2];
 
-    			if (dirty & /*$$scope, graphs, energies, V0, maxE, minE*/ 262175) {
+    			if (dirty & /*$$scope, fn, opts, V0, maxE, minE*/ 32799) {
     				axis_changes.$$scope = { dirty, ctx };
     			}
 
@@ -2389,7 +2574,7 @@ var app = (function () {
     		i(local) {
     			if (current) return;
 
-    			for (let i = 0; i < each_value_1.length; i += 1) {
+    			for (let i = 0; i < each_value.length; i += 1) {
     				transition_in(each_blocks[i]);
     			}
 
@@ -2411,8 +2596,6 @@ var app = (function () {
     	};
     }
 
-    const POINTS = 500;
-
     function forceBounds(node) {
     	function change(e) {
     		const t = e.target;
@@ -2431,7 +2614,7 @@ var app = (function () {
     }
 
     function instance($$self, $$props, $$invalidate) {
-    	let energies;
+    	let fn;
     	let minE = 0;
 
     	/** maximum Energy [eV] */
@@ -2440,27 +2623,18 @@ var app = (function () {
     	/** barrier poential [eV] */
     	let V0 = 5;
 
-    	/**@type {{l: number, color: string, y: number[]}[]}*/
-    	let graphs = [];
+    	/**@type {{color: string, parameter: number}[]}*/
+    	const opts = [];
 
     	function addGraph(l) {
-    		const g = { l, color: randomColor(), y: [] };
-    		for (var i = 0; i <= POINTS; i++) g.y.push(transmission(energies[i] * eV2Ry, V0 * eV2Ry, l * A2au));
-    		graphs.push(g);
-    		$$invalidate(4, graphs);
+    		opts.push({ color: randomColor(), parameter: l });
+    		$$invalidate(3, opts);
     	}
 
     	function removeGraph(e) {
-    		const i = +e.target.getAttribute('data-index');
-    		graphs.splice(i, 1);
-    		$$invalidate(4, graphs);
-    	}
-
-    	function allGraphs() {
-    		if (graphs.length == 0) return;
-    		const gs = table_l_E(convert_eV_to_Ry(energies, POINTS), V0 * eV2Ry, graphs.map(g => g.l * A2au));
-    		const LEN = graphs.length;
-    		for (var i = 0; i < LEN; i++) $$invalidate(4, graphs[i].y = gs[i], graphs);
+    		const i = +e.target.value;
+    		opts.splice(i, 1);
+    		$$invalidate(3, opts);
     	}
 
     	function addLength(e) {
@@ -2471,36 +2645,31 @@ var app = (function () {
     		addGraph(v);
     	}
 
-    	const safe_change_handler = e => $$invalidate(0, minE = e.detail);
-    	const safe_change_handler_1 = e => $$invalidate(1, maxE = e.detail);
+    	const safe_change_handler = e => $$invalidate(1, minE = e.detail);
+    	const safe_change_handler_1 = e => $$invalidate(2, maxE = e.detail);
 
     	function input2_change_input_handler() {
     		V0 = to_number(this.value);
-    		$$invalidate(2, V0);
+    		$$invalidate(0, V0);
     	}
 
-    	function input_input_handler(each_value_1, i) {
-    		each_value_1[i].color = this.value;
-    		$$invalidate(4, graphs);
+    	function input_input_handler(each_value, i) {
+    		each_value[i].color = this.value;
+    		$$invalidate(3, opts);
     	}
 
     	$$self.$$.update = () => {
-    		if ($$self.$$.dirty & /*minE, maxE, V0*/ 7) {
-    			/** energis [eV] at which to compute the transmission */
-    			$$invalidate(3, energies = linearSpaceH(minE, maxE, POINTS, [0, V0]));
-    		}
-
-    		if ($$self.$$.dirty & /*energies*/ 8) {
-    			energies && allGraphs();
+    		if ($$self.$$.dirty & /*V0*/ 1) {
+    			$$invalidate(4, fn = (min, max, sample, params) => table(min, max, sample, V0, params));
     		}
     	};
 
     	return [
+    		V0,
     		minE,
     		maxE,
-    		V0,
-    		energies,
-    		graphs,
+    		opts,
+    		fn,
     		removeGraph,
     		addLength,
     		safe_change_handler,

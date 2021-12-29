@@ -106,8 +106,8 @@ export function table_l_E(E, V0, l) {
 
 
 function piece1(E, V0) {
-    k.becomes(-E[i],0).pow_r(.5);
-    b.becomes(V0-E[i],0).pow_r(.5);
+    k.becomes(-E,0).pow_r(.5);
+    b.becomes(V0-E,0).pow_r(.5);
     // M1 = [1, 1; k, -k]
     M[0].a.toOne();
     M[0].b.toOne();
@@ -161,43 +161,51 @@ function areFloatEqual(a,b) { return Math.abs((a-b)/a) < 2*Number.EPSILON }
  * @param {number} samples how many values of E to take
  * @param {number} V0 barrier potential [Ry]
  * @param {number[]} lengths barrier lengths [a.u.]
+ * @returns {number[][]} samples long array containing [energy, ...transmissions]
  */
 export function table(minE, maxE, samples, V0, lengths) {
     const LEN_l = lengths.length;
-    const res = new Array(LEN_l+1);
+    const res = new Array(samples);
     var i;
     var j;
     var E;
-    for(i=0; i<LEN_l; i++) res[i] = new Array(samples);
-    const span = (maxE-minE)/(samples-1);
+    if(minE <= 0) {
+        samples *= maxE / (maxE-minE);
+        minE = .1 * maxE / samples; 
+    }
 
-    const potential_index = Math.round((V0-minE)/span);
-    const hasSpecial = V0 > minE && V0 < maxE && areFloatEqual(V0, minE+span*potential_index);
-    const stop_index = hasSpecial ? potential_index : samples;
+    const span = (maxE-minE)/(samples-1);
+    const V0_index = Math.round((V0-minE)/span);
+    const through_V0 = V0_index >= 0 && V0_index < samples && areFloatEqual(V0, minE+span*V0_index);
+    const stop_index = through_V0 ? V0_index : samples;
 
     for(i=0; i<stop_index; i++) {
         E = minE + span*i;
-        res[0][i] = E;
+        res[i] = new Array(LEN_l+1);
+        res[i][0] = E;
         piece1(E, V0);
-        for(j=0; i<LEN_l; j++) res[j][i] = piece2(lengths[j]);
+        for(j=0; j<LEN_l; j++) res[i][j+1] = piece2(lengths[j]);
     }
-    if(!hasSpecial) return res;
+    if(!through_V0) return res;
     
     // special case: energy = potential
-    k.becomes(-E[i],0).pow_r(.5);
+    k.becomes(-V0,0).pow_r(.5);
     // M1 = [1, 1; k, -k]
     M[0].a.toOne();
     M[0].b.toOne();
     M[0].c.eq(k);
     M[0].d.eq(k).toOpposite();
     M[0].toInverse();
-    for(j=0; i<LEN_l; j++) res[j][i] = piece3(lengths[j]);
+    res[i] = new Array(LEN_l+1);
+    res[i][0] = V0;
+    for(j=0; j<LEN_l; j++) res[i][j+1] = piece3(lengths[j]);
     // normal calculation again
     for(i++; i<samples; i++) {
         E = minE + span*i;
-        res[0][i] = E;
+        res[i] = new Array(LEN_l+1);
+        res[i][0] = E;
         piece1(E,V0);
-        for(j=0; i<LEN_l; j++) res[j][i] = piece2(lengths[j]);
+        for(j=0; j<LEN_l; j++) res[i][j+1] = piece2(lengths[j]);
     }
     return res;
 }

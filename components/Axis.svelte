@@ -34,6 +34,14 @@
     $: yPixels.set(height-2*pad);
     export function getYPixels() {return yPixels.subscribe}
 
+    const xRange = writable([min_x, max_x]);
+    setContext("xRange", xRange.subscribe);
+    $: xRange.set([min_x, max_x]);
+
+    const yRange = writable([min_y, max_y]);
+    setContext("yRange", yRange.subscribe);
+    $: yRange.set([min_y, max_y]);
+
     $: xTicks = linearSpace(min_x, max_x, Math.ceil(width/density));
     $: yTicks = linearSpace(min_y, max_y, Math.ceil(height/density))
 

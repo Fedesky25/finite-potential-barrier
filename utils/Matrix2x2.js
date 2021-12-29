@@ -35,6 +35,16 @@ export default class Matrix2x2 {
      * @returns
      */
     mul_left(m) {
+        this.z1.eq(m.a).mul(this.c);
+        this.z2.eq(m.c).mul(this.a);
+        this.a.mul(m.a).add(this.z1);
+        this.c.mul(m.d).add(this.z2);
+
+        this.z1.eq(m.b).mul(this.d);
+        this.z2.eq(m.c).mul(this.b);
+        this.b.mul(m.a).add(this.z1);
+        this.d.mul(m.d).add(this.z2);
+
         return this;
     }
     /**

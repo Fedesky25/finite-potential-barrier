@@ -221,4 +221,4 @@ export default class Complex {
     }
 }
 function nf(n) { return Number.isInteger(n) ? n.toString() : n.toPrecision(3) } 
-Object.defineProperty(window, "Complex", {value: Complex});
+// Object.defineProperty(window, "Complex", {value: Complex});
