@@ -185,6 +185,20 @@ var app = (function () {
     function set_style(node, key, value, important) {
         node.style.setProperty(key, value, important ? 'important' : '');
     }
+    function select_option(select, value) {
+        for (let i = 0; i < select.options.length; i += 1) {
+            const option = select.options[i];
+            if (option.__value === value) {
+                option.selected = true;
+                return;
+            }
+        }
+        select.selectedIndex = -1; // no option should be selected
+    }
+    function select_value(select) {
+        const selected_option = select.querySelector(':checked') || select.options[0];
+        return selected_option && selected_option.__value;
+    }
     function custom_event(type, detail, bubbles = false) {
         const e = document.createEvent('CustomEvent');
         e.initCustomEvent(type, bubbles, false, detail);
@@ -716,6 +730,108 @@ var app = (function () {
         };
     }
 
+    /**
+     * @typedef {{
+     * (value: number) => number, 
+     * domain: (min: number, max: number) => linearScale,
+     * range: (min: number, max: number) => linearScale
+     * }} linearScale
+     */
+    /**
+     * Constructs a new linear scale
+     * @returns {linearScale}
+     */
+    function linearScale() {
+        var from_min = 0;
+        var from_dim = 1;
+        var to_min = 0;
+        var to_dim = 1;
+        const compute = v => (v-from_min)/from_dim*to_dim + to_min;
+        compute.domain = (min, max) => {
+            from_min = min;
+            from_dim = max-min;
+            return compute;
+        };
+        compute.range = (min, max) => {
+            to_min = min;
+            to_dim = max-min;
+            return compute;
+        };
+        return compute;
+    }
+
+    /**
+     * Creates an array array with equispaced values such that
+     * they divide in equal spaces the range between min and max
+     * @param {number} min minimum range value (included)
+     * @param {number} max maximum range value (included)
+     * @param {number} spaces number of equal spaces
+     * @returns {number[]} threshold values of each equispaced interval (spaces+1 long)
+     */
+    function linearSpace(min, max, spaces) {
+        const res = new Array(spaces+1);
+        const span = (max-min)/spaces;
+        for(var i=0; i<=spaces; i++) res[i] = span*i + min;
+        return res;
+    }
+
+
+    class LinearSpace extends Array {
+        /**
+         * Constructs an array with equispaced values between a min and a max
+         * @constructor
+         * @param {number} min starting value
+         * @param {number} max ending values
+         * @param {number} points number of points taken
+         * @param {boolean} [excludeMin] whether to exclude the min value
+         * @param {boolean} [excludeMax] whether to exclude the max value
+         */
+        constructor(min, max, points, excludeMin=false, excludeMax=false) {
+            super(points);
+            this.min = min;
+            this.span = (max-min)/(points-1);
+            for(var i=0; i<points; i++) this[i] = this.span*i + min;
+            if(excludeMin) this[0] += this.span*0.05;
+            if(excludeMax) this[points-1];
+        }
+        /**
+         * Returns the index of the occurrence of a value in a linear space, or -1 if it is not present. \
+         * Works correctly only if the array value is not modified. \
+         * Has order of complexity O(1)
+         * @param {number} x value to search
+         * @returns {number} index of the value or -1
+         */
+        indexOf(x) {
+            const i = Math.round((x-this.min)/this.span);
+            if(i >= 0 && i < this.length && Math.abs((this[i]-x)/this[i]) < this.span*0.05) return i;
+            else return -1;
+        }
+        /**
+         * Determines whether an linear space includes a certain value. \
+         * Works correctly only if the array value is not modified. 
+         * @param {number} x value to search for
+         * @returns {boolean}
+         */
+        includes(x) {return this.indexOf(x) !== -1}
+    }
+
+
+    // function LinearSpace2(min, max, points) {
+    //     const res = new Array(points);
+    //     const span = (max-min)/(points-1);
+    //     for(var i=0; i<points; i++) res[i] = span*i + min;
+    //     res.span = span;
+    //     res.min = min;
+    //     Object.setPrototypeOf(res, LinearSpace2.prototype);
+    //     return res;
+    // }
+    // LinearSpace2.prototype.indexOf = function(x) {
+    //     const i = Math.round((x-this.min)/this.span);
+    //     if(Math.abs((this[i]-x)/this[i]) < this.span*0.05) return i;
+    //     else return -1;
+    // }
+    // LinearSpace2.prototype.includes = function(x) { return this.indexOf(x) !== -1 }
+
     class Complex {
         constructor(real=0, imag=0) {
             this.real = real;
@@ -1004,21 +1120,6 @@ var app = (function () {
 
             return this;
         }
-        /**
-         * Copies a matrix into a new one
-         * @param {Matrix2x2} m 
-         */
-        static copy(m) { return new Matrix2x2().set_a(m.a).set_b(m.b).set_c(m.c).set_d(m.d) }
-        /**
-         * Multiplies several matrices, returning a new one
-         * @param {Matrix2x2}
-         */
-        static multiply(...m) {
-            const l = m.length;
-            const res = Matrix2x2.copy(m[0]);
-            for(var i=0; i<l; i++) res.mul(m[i]);
-            return res;
-        }
     }
     /**
      * Utility complex number: do not use.\
@@ -1037,38 +1138,68 @@ var app = (function () {
     const k = new Complex;
     const b = new Complex;
 
-
-    function piece1(E, V0) {
-        k.becomes(-E,0).pow_r(.5);
-        b.becomes(V0-E,0).pow_r(.5);
-        // M1 = [1, 1; k, -k]^(-1)
+    /**
+     * Computes the matrix products, with the current M, b, and k
+     * @param {number} l 
+     * @returns {number}
+     */
+    function compute(l) {
+        // M1 = [1, 1; k, -k]
         M[0].a.toOne();
         M[0].b.toOne();
         M[0].c.eq(k);
         M[0].d.eq(k).toOpposite();
-        M[0].toInverse();
+
         // M2 = [1, 1; b, -b]
         M[1].a.toOne();
         M[1].b.toOne();
         M[1].c.eq(b);
         M[1].d.eq(b).toOpposite();
-    }
-    function piece2(l) {
+        
         // M3 = [exp(b*l), exp(-b*l); b*exp(b*l), -b*exp(-b*l)]
         M[2].a.eq(b).mul_r(l).intoExp();
         M[2].b.eq(M[2].a).toReciprocal();
         M[2].c.eq(M[2].a).mul(b);
         M[2].d.eq(M[2].b).mul(b).toOpposite();
+
         // M4 = [exp(k*l), exp(-k*l); k*exp(k*l), -k*exp(-k*l)]
         M[3].a.eq(k).mul_r(l).intoExp();
         M[3].b.eq(M[3].a).toReciprocal();
         M[3].c.eq(M[3].a).mul(k);
         M[3].d.eq(M[3].b).mul(k).toOpposite();
 
-        M[3].mul_left(M[2].toInverse()).mul_left(M[1]).mul_left(M[0]);
-        return 1/M[3].a.squareModulus;
+        // inv(M1)*M2*inv(M3)*M4
+        M[0].toInverse().mul_right(M[1]).mul_right(M[2].toInverse()).mul_right(M[3]);
+        return 1/M[0].a.squareModulus;
     }
-    function piece3(l) {
+
+    /**
+     * @param {number} E energy [Ry]
+     * @param {number} V0 potential [Ry]
+     * @param {number} l barrier width [a.u.]
+     * @param {number} m particle mass [electrom masses]
+     * @returns {number} transmission coefficient
+     */
+    function transmission(E, V0, l, m) {
+        k.becomes(-m*E,0).pow_r(.5);     // k^2 = -E 2m/h^2 
+        b.becomes(m*(V0-E),0).pow_r(.5);   // beta^2 = (V0-E) 2m/h^2
+        return compute(l);
+    }
+
+    /**
+     * Computesth transmission coefficient when the energy equals the potential
+     * @param {number} E energy or potential [Ry]
+     * @param {number} l barrier width [a.u.]
+     * @param {number} m particle mass [electrom masses]
+     * @returns {number}
+     */
+    function transmission_pot(E, l, m) {
+        k.becomes(-m*E,0).pow_r(.5);
+        // M1 = [1, 1; k, -k]
+        M[0].a.toOne();
+        M[0].b.toOne();
+        M[0].c.eq(k);
+        M[0].d.eq(k).toOpposite();
         // M2 = [1, -l; 0, 1]
         M[1].a.toOne();
         M[1].b.becomes(-l,0);
@@ -1080,67 +1211,8 @@ var app = (function () {
         M[3].c.eq(M[3].a).mul(k);
         M[3].d.eq(M[3].b).mul(k).toOpposite();
 
-        M[3].mul_left(M[1]).mul_left(M[0]);
+        M[0].toInverse().mul_right(M[1]).mul_right(M[3]);
         return 1/M[3].a.squareModulus;
-    }
-
-
-    function areFloatEqual(a,b) { return Math.abs((a-b)/a) < 2*Number.EPSILON }
-
-    /**
-     * 
-     * @param {number} minE starting energy value [Ry]
-     * @param {number} maxE last energy value [Ry]
-     * @param {number} samples how many values of E to take
-     * @param {number} V0 barrier potential [Ry]
-     * @param {number[]} lengths barrier lengths [a.u.]
-     * @returns {number[][]} samples long array containing [energy, ...transmissions]
-     */
-    function table(minE, maxE, samples, V0, lengths) {
-        const LEN_l = lengths.length;
-        const res = new Array(samples);
-        var i;
-        var j;
-        var E;
-        if(minE <= 0) {
-            samples *= maxE / (maxE-minE);
-            minE = .1 * maxE / samples; 
-        }
-
-        const span = (maxE-minE)/(samples-1);
-        const V0_index = Math.round((V0-minE)/span);
-        const through_V0 = V0_index >= 0 && V0_index < samples && areFloatEqual(V0, minE+span*V0_index);
-        const stop_index = through_V0 ? V0_index : samples;
-
-        for(i=0; i<stop_index; i++) {
-            E = minE + span*i;
-            res[i] = new Array(LEN_l+1);
-            res[i][0] = E;
-            piece1(E, V0);
-            for(j=0; j<LEN_l; j++) res[i][j+1] = piece2(lengths[j]);
-        }
-        if(!through_V0) return res;
-        
-        // special case: energy = potential
-        k.becomes(-V0,0).pow_r(.5);
-        // M1 = [1, 1; k, -k]
-        M[0].a.toOne();
-        M[0].b.toOne();
-        M[0].c.eq(k);
-        M[0].d.eq(k).toOpposite();
-        M[0].toInverse();
-        res[i] = new Array(LEN_l+1);
-        res[i][0] = V0;
-        for(j=0; j<LEN_l; j++) res[i][j+1] = piece3(lengths[j]);
-        // normal calculation again
-        for(i++; i<samples; i++) {
-            E = minE + span*i;
-            res[i] = new Array(LEN_l+1);
-            res[i][0] = E;
-            piece1(E,V0);
-            for(j=0; j<LEN_l; j++) res[i][j+1] = piece2(lengths[j]);
-        }
-        return res;
     }
 
     function randomColor() {
@@ -1195,60 +1267,15 @@ var app = (function () {
         return { set, update, subscribe };
     }
 
-    /**
-     * @typedef {{
-     * (value: number) => number, 
-     * domain: (min: number, max: number) => linearScale,
-     * range: (min: number, max: number) => linearScale
-     * }} linearScale
-     */
-    /**
-     * Constructs a new linear scale
-     * @returns {linearScale}
-     */
-    function linearScale() {
-        var from_min = 0;
-        var from_dim = 1;
-        var to_min = 0;
-        var to_dim = 1;
-        const compute = v => (v-from_min)/from_dim*to_dim + to_min;
-        compute.domain = (min, max) => {
-            from_min = min;
-            from_dim = max-min;
-            return compute;
-        };
-        compute.range = (min, max) => {
-            to_min = min;
-            to_dim = max-min;
-            return compute;
-        };
-        return compute;
-    }
-
-    /**
-     * Creates an array array with equispaced values such that
-     * they divide in equal spaces the range between min and max
-     * @param {number} min minimum range value (included)
-     * @param {number} max maximum range value (included)
-     * @param {number} spaces number of equal spaces
-     * @returns {number[]} threshold values of each equispaced interval (spaces+1 long)
-     */
-    function linearSpace(min, max, spaces) {
-        const res = new Array(spaces+1);
-        const span = (max-min)/spaces;
-        for(var i=0; i<=spaces; i++) res[i] = span*i + min;
-        return res;
-    }
-
     /* components\Axis.svelte generated by Svelte v3.44.3 */
 
-    function get_each_context$2(ctx, list, i) {
+    function get_each_context$1(ctx, list, i) {
     	const child_ctx = ctx.slice();
     	child_ctx[24] = list[i];
     	return child_ctx;
     }
 
-    function get_each_context_1(ctx, list, i) {
+    function get_each_context_1$1(ctx, list, i) {
     	const child_ctx = ctx.slice();
     	child_ctx[24] = list[i];
     	return child_ctx;
@@ -1327,7 +1354,7 @@ var app = (function () {
     }
 
     // (76:12) {#each yTicks as tick}
-    function create_each_block_1(ctx) {
+    function create_each_block_1$1(ctx) {
     	let line;
     	let line_x__value;
     	let line_transform_value;
@@ -1359,7 +1386,7 @@ var app = (function () {
     }
 
     // (81:12) {#each xTicks as tick}
-    function create_each_block$2(ctx) {
+    function create_each_block$1(ctx) {
     	let line;
     	let line_y__value;
     	let line_transform_value;
@@ -1390,7 +1417,7 @@ var app = (function () {
     	};
     }
 
-    function create_fragment$3(ctx) {
+    function create_fragment$2(ctx) {
     	let div;
     	let t0;
     	let t1;
@@ -1418,14 +1445,14 @@ var app = (function () {
     	let each_blocks_1 = [];
 
     	for (let i = 0; i < each_value_1.length; i += 1) {
-    		each_blocks_1[i] = create_each_block_1(get_each_context_1(ctx, each_value_1, i));
+    		each_blocks_1[i] = create_each_block_1$1(get_each_context_1$1(ctx, each_value_1, i));
     	}
 
     	let each_value = /*xTicks*/ ctx[4];
     	let each_blocks = [];
 
     	for (let i = 0; i < each_value.length; i += 1) {
-    		each_blocks[i] = create_each_block$2(get_each_context$2(ctx, each_value, i));
+    		each_blocks[i] = create_each_block$1(get_each_context$1(ctx, each_value, i));
     	}
 
     	const default_slot_template = /*#slots*/ ctx[16].default;
@@ -1554,12 +1581,12 @@ var app = (function () {
     				let i;
 
     				for (i = 0; i < each_value_1.length; i += 1) {
-    					const child_ctx = get_each_context_1(ctx, each_value_1, i);
+    					const child_ctx = get_each_context_1$1(ctx, each_value_1, i);
 
     					if (each_blocks_1[i]) {
     						each_blocks_1[i].p(child_ctx, dirty);
     					} else {
-    						each_blocks_1[i] = create_each_block_1(child_ctx);
+    						each_blocks_1[i] = create_each_block_1$1(child_ctx);
     						each_blocks_1[i].c();
     						each_blocks_1[i].m(g0, null);
     					}
@@ -1577,12 +1604,12 @@ var app = (function () {
     				let i;
 
     				for (i = 0; i < each_value.length; i += 1) {
-    					const child_ctx = get_each_context$2(ctx, each_value, i);
+    					const child_ctx = get_each_context$1(ctx, each_value, i);
 
     					if (each_blocks[i]) {
     						each_blocks[i].p(child_ctx, dirty);
     					} else {
-    						each_blocks[i] = create_each_block$2(child_ctx);
+    						each_blocks[i] = create_each_block$1(child_ctx);
     						each_blocks[i].c();
     						each_blocks[i].m(g1, null);
     					}
@@ -1635,7 +1662,7 @@ var app = (function () {
 
     const pad = 2;
 
-    function instance$3($$self, $$props, $$invalidate) {
+    function instance$2($$self, $$props, $$invalidate) {
     	let xTicks;
     	let yTicks;
     	let { $$slots: slots = {}, $$scope } = $$props;
@@ -1770,8 +1797,8 @@ var app = (function () {
     		init(
     			this,
     			options,
-    			instance$3,
-    			create_fragment$3,
+    			instance$2,
+    			create_fragment$2,
     			safe_not_equal,
     			{
     				min_x: 8,
@@ -1798,7 +1825,7 @@ var app = (function () {
 
     /* components\DataPlot.svelte generated by Svelte v3.44.3 */
 
-    function create_fragment$2(ctx) {
+    function create_fragment$1(ctx) {
     	let path;
     	let path_d_value;
     	let path_transition;
@@ -1863,7 +1890,7 @@ var app = (function () {
     	return g.join(' ');
     }
 
-    function instance$2($$self, $$props, $$invalidate) {
+    function instance$1($$self, $$props, $$invalidate) {
     	let { x = [] } = $$props;
     	let { y = [] } = $$props;
     	let { color = "black" } = $$props;
@@ -1889,7 +1916,7 @@ var app = (function () {
     	constructor(options) {
     		super();
 
-    		init(this, options, instance$2, create_fragment$2, safe_not_equal, {
+    		init(this, options, instance$1, create_fragment$1, safe_not_equal, {
     			x: 0,
     			y: 1,
     			color: 2,
@@ -1899,276 +1926,304 @@ var app = (function () {
     	}
     }
 
-    /* components\ParametricPlot.svelte generated by Svelte v3.44.3 */
-
-    function get_each_context$1(ctx, list, i) {
-    	const child_ctx = ctx.slice();
-    	child_ctx[10] = list[i];
-    	child_ctx[12] = i;
-    	return child_ctx;
-    }
-
-    // (82:0) {#each options as opt, i}
-    function create_each_block$1(ctx) {
-    	let path;
-    	let path_d_value;
-    	let path_stroke_value;
-    	let path_stroke_width_value;
-    	let path_stroke_dasharray_value;
-    	let path_transition;
-    	let current;
-
-    	return {
-    		c() {
-    			path = svg_element("path");
-    			attr(path, "d", path_d_value = /*paths*/ ctx[1][/*i*/ ctx[12]]);
-    			attr(path, "stroke", path_stroke_value = /*opt*/ ctx[10].color);
-    			attr(path, "stroke-width", path_stroke_width_value = /*opt*/ ctx[10].thickness || 2);
-    			attr(path, "stroke-dasharray", path_stroke_dasharray_value = /*opt*/ ctx[10].dash);
-    			attr(path, "fill", "none");
-    		},
-    		m(target, anchor) {
-    			insert(target, path, anchor);
-    			current = true;
-    		},
-    		p(ctx, dirty) {
-    			if (!current || dirty & /*paths*/ 2 && path_d_value !== (path_d_value = /*paths*/ ctx[1][/*i*/ ctx[12]])) {
-    				attr(path, "d", path_d_value);
-    			}
-
-    			if (!current || dirty & /*options*/ 1 && path_stroke_value !== (path_stroke_value = /*opt*/ ctx[10].color)) {
-    				attr(path, "stroke", path_stroke_value);
-    			}
-
-    			if (!current || dirty & /*options*/ 1 && path_stroke_width_value !== (path_stroke_width_value = /*opt*/ ctx[10].thickness || 2)) {
-    				attr(path, "stroke-width", path_stroke_width_value);
-    			}
-
-    			if (!current || dirty & /*options*/ 1 && path_stroke_dasharray_value !== (path_stroke_dasharray_value = /*opt*/ ctx[10].dash)) {
-    				attr(path, "stroke-dasharray", path_stroke_dasharray_value);
-    			}
-    		},
-    		i(local) {
-    			if (current) return;
-
-    			add_render_callback(() => {
-    				if (!path_transition) path_transition = create_bidirectional_transition(path, fade, { duration: 150 }, true);
-    				path_transition.run(1);
-    			});
-
-    			current = true;
-    		},
-    		o(local) {
-    			if (!path_transition) path_transition = create_bidirectional_transition(path, fade, { duration: 150 }, false);
-    			path_transition.run(0);
-    			current = false;
-    		},
-    		d(detaching) {
-    			if (detaching) detach(path);
-    			if (detaching && path_transition) path_transition.end();
-    		}
-    	};
-    }
-
-    function create_fragment$1(ctx) {
-    	let each_1_anchor;
-    	let current;
-    	let each_value = /*options*/ ctx[0];
-    	let each_blocks = [];
-
-    	for (let i = 0; i < each_value.length; i += 1) {
-    		each_blocks[i] = create_each_block$1(get_each_context$1(ctx, each_value, i));
-    	}
-
-    	const out = i => transition_out(each_blocks[i], 1, 1, () => {
-    		each_blocks[i] = null;
-    	});
-
-    	return {
-    		c() {
-    			for (let i = 0; i < each_blocks.length; i += 1) {
-    				each_blocks[i].c();
-    			}
-
-    			each_1_anchor = empty();
-    		},
-    		m(target, anchor) {
-    			for (let i = 0; i < each_blocks.length; i += 1) {
-    				each_blocks[i].m(target, anchor);
-    			}
-
-    			insert(target, each_1_anchor, anchor);
-    			current = true;
-    		},
-    		p(ctx, [dirty]) {
-    			if (dirty & /*paths, options*/ 3) {
-    				each_value = /*options*/ ctx[0];
-    				let i;
-
-    				for (i = 0; i < each_value.length; i += 1) {
-    					const child_ctx = get_each_context$1(ctx, each_value, i);
-
-    					if (each_blocks[i]) {
-    						each_blocks[i].p(child_ctx, dirty);
-    						transition_in(each_blocks[i], 1);
-    					} else {
-    						each_blocks[i] = create_each_block$1(child_ctx);
-    						each_blocks[i].c();
-    						transition_in(each_blocks[i], 1);
-    						each_blocks[i].m(each_1_anchor.parentNode, each_1_anchor);
-    					}
-    				}
-
-    				group_outros();
-
-    				for (i = each_value.length; i < each_blocks.length; i += 1) {
-    					out(i);
-    				}
-
-    				check_outros();
-    			}
-    		},
-    		i(local) {
-    			if (current) return;
-
-    			for (let i = 0; i < each_value.length; i += 1) {
-    				transition_in(each_blocks[i]);
-    			}
-
-    			current = true;
-    		},
-    		o(local) {
-    			each_blocks = each_blocks.filter(Boolean);
-
-    			for (let i = 0; i < each_blocks.length; i += 1) {
-    				transition_out(each_blocks[i]);
-    			}
-
-    			current = false;
-    		},
-    		d(detaching) {
-    			destroy_each(each_blocks, detaching);
-    			if (detaching) detach(each_1_anchor);
-    		}
-    	};
-    }
-
-    function joinMultipleIntoPaths(data, num, xScale, yScale) {
-    	const LEN = data.length;
-    	const paths = [];
-    	var i;
-    	var j;
-    	var piece = 'M' + xScale(data[0][0]) + ',';
-    	for (i = 0; i < num; i++) paths.push(piece + yScale(data[0][i + 1]));
-
-    	for (i = 1; i < LEN; i++) {
-    		piece = 'M' + xScale(data[i][0]) + ',';
-    		for (j = 0; j < num; j++) paths[j] += piece + yScale(data[i][j + 1]);
-    	}
-
-    	return paths;
-    }
-
-    function instance$1($$self, $$props, $$invalidate) {
-    	let { fn } = $$props;
-
-    	/**
-     * @typedef PlotOptions
-     * @property {any} parameter object or value to pass the function
-     * @property {string} color color of the plot
-     * @property {string|number} thickness width of the trace
-     * @property {string} dash dash array
-     */
-    	/**@type {PlotOptions[]}*/
-    	let options = [];
-
-    	/**@type {string[]}*/
-    	let paths = [];
-
-    	let xScale;
-    	let yScale;
-    	let range;
-    	let sample = 0;
-
-    	function recompute() {
-    		if (sample <= 0) return;
-    		const data = fn(range[0], range[1], sample, options.map(v => v.parameter));
-    		$$invalidate(1, paths = joinMultipleIntoPaths(data, options.length, xScale, yScale));
-    	}
-
-    	getContext("xScale")(v => {
-    		xScale = v;
-    		recompute();
-    	});
-
-    	getContext("yScale")(v => {
-    		yScale = v;
-    		recompute();
-    	});
-
-    	getContext("xRange")(v => {
-    		range = v;
-    		recompute();
-    	});
-
-    	getContext("xPixels")(v => {
-    		sample = Math.round(v / 2);
-    		recompute();
-    	});
-
-    	function add(...opts) {
-    		const p = opts.map(v => v.parameter);
-    		const newData = fn(range[0], range[1], sample, p);
-    		paths.push(...joinMultipleIntoPaths(newData, options.length, xScale, yScale));
-    		options.push(p);
-    		$$invalidate(0, options);
-    	}
-
-    	function remove(index) {
-    		paths.splice(index, 1);
-    		options.splice(index, 1);
-    		$$invalidate(0, options);
-    	}
-
-    	$$self.$$set = $$props => {
-    		if ('fn' in $$props) $$invalidate(2, fn = $$props.fn);
-    	};
-
-    	return [options, paths, fn, add, remove];
-    }
-
-    class ParametricPlot extends SvelteComponent {
-    	constructor(options) {
-    		super();
-    		init(this, options, instance$1, create_fragment$1, safe_not_equal, { fn: 2, add: 3, remove: 4 });
-    	}
-
-    	get add() {
-    		return this.$$.ctx[3];
-    	}
-
-    	get remove() {
-    		return this.$$.ctx[4];
-    	}
-    }
-
     /* components\App.svelte generated by Svelte v3.44.3 */
 
     function get_each_context(ctx, list, i) {
     	const child_ctx = ctx.slice();
-    	child_ctx[12] = list[i];
-    	child_ctx[13] = list;
-    	child_ctx[14] = i;
+    	child_ctx[24] = list[i];
     	return child_ctx;
     }
 
-    // (68:2) {#each opts as o, i}
-    function create_each_block(ctx) {
+    function get_each_context_1(ctx, list, i) {
+    	const child_ctx = ctx.slice();
+    	child_ctx[24] = list[i];
+    	child_ctx[27] = list;
+    	child_ctx[28] = i;
+    	return child_ctx;
+    }
+
+    // (121:1) {#if mode !== 0}
+    function create_if_block_5(ctx) {
+    	let h3;
+    	let t1;
+    	let input;
+    	let t2;
+    	let t3;
+    	let mounted;
+    	let dispose;
+
+    	return {
+    		c() {
+    			h3 = element("h3");
+    			h3.textContent = "Barrier length [Å]";
+    			t1 = space();
+    			input = element("input");
+    			t2 = space();
+    			t3 = text(/*global_length*/ ctx[2]);
+    			attr(h3, "class", "svelte-pikyfx");
+    			attr(input, "type", "range");
+    			attr(input, "min", "0.025");
+    			attr(input, "max", "10");
+    			attr(input, "step", "0.025");
+    			attr(input, "class", "svelte-pikyfx");
+    		},
+    		m(target, anchor) {
+    			insert(target, h3, anchor);
+    			insert(target, t1, anchor);
+    			insert(target, input, anchor);
+    			set_input_value(input, /*global_length*/ ctx[2]);
+    			insert(target, t2, anchor);
+    			insert(target, t3, anchor);
+
+    			if (!mounted) {
+    				dispose = [
+    					listen(input, "change", /*input_change_input_handler*/ ctx[15]),
+    					listen(input, "input", /*input_change_input_handler*/ ctx[15])
+    				];
+
+    				mounted = true;
+    			}
+    		},
+    		p(ctx, dirty) {
+    			if (dirty & /*global_length*/ 4) {
+    				set_input_value(input, /*global_length*/ ctx[2]);
+    			}
+
+    			if (dirty & /*global_length*/ 4) set_data(t3, /*global_length*/ ctx[2]);
+    		},
+    		d(detaching) {
+    			if (detaching) detach(h3);
+    			if (detaching) detach(t1);
+    			if (detaching) detach(input);
+    			if (detaching) detach(t2);
+    			if (detaching) detach(t3);
+    			mounted = false;
+    			run_all(dispose);
+    		}
+    	};
+    }
+
+    // (126:1) {#if mode !== 1}
+    function create_if_block_4(ctx) {
+    	let h3;
+    	let t1;
+    	let input;
+    	let t2;
+    	let t3;
+    	let mounted;
+    	let dispose;
+
+    	return {
+    		c() {
+    			h3 = element("h3");
+    			h3.textContent = "Barrier potential [eV]";
+    			t1 = space();
+    			input = element("input");
+    			t2 = space();
+    			t3 = text(/*global_potential*/ ctx[3]);
+    			attr(h3, "class", "svelte-pikyfx");
+    			attr(input, "type", "range");
+    			attr(input, "min", "0.05");
+    			attr(input, "max", "20");
+    			attr(input, "step", "0.05");
+    			attr(input, "class", "svelte-pikyfx");
+    		},
+    		m(target, anchor) {
+    			insert(target, h3, anchor);
+    			insert(target, t1, anchor);
+    			insert(target, input, anchor);
+    			set_input_value(input, /*global_potential*/ ctx[3]);
+    			insert(target, t2, anchor);
+    			insert(target, t3, anchor);
+
+    			if (!mounted) {
+    				dispose = [
+    					listen(input, "change", /*input_change_input_handler_1*/ ctx[16]),
+    					listen(input, "input", /*input_change_input_handler_1*/ ctx[16])
+    				];
+
+    				mounted = true;
+    			}
+    		},
+    		p(ctx, dirty) {
+    			if (dirty & /*global_potential*/ 8) {
+    				set_input_value(input, /*global_potential*/ ctx[3]);
+    			}
+
+    			if (dirty & /*global_potential*/ 8) set_data(t3, /*global_potential*/ ctx[3]);
+    		},
+    		d(detaching) {
+    			if (detaching) detach(h3);
+    			if (detaching) detach(t1);
+    			if (detaching) detach(input);
+    			if (detaching) detach(t2);
+    			if (detaching) detach(t3);
+    			mounted = false;
+    			run_all(dispose);
+    		}
+    	};
+    }
+
+    // (131:1) {#if mode !== 2}
+    function create_if_block_3(ctx) {
+    	let h3;
+    	let t3;
+    	let select;
+    	let option0;
+    	let option0_value_value;
+    	let option1;
+    	let option1_value_value;
+    	let option2;
+    	let option2_value_value;
+    	let option3;
+    	let option3_value_value;
+    	let option4;
+    	let option4_value_value;
+    	let option5;
+    	let option5_value_value;
+    	let option6;
+    	let option6_value_value;
+    	let mounted;
+    	let dispose;
+
+    	return {
+    		c() {
+    			h3 = element("h3");
+    			h3.innerHTML = `Particle mass [m<sub>e</sub>]`;
+    			t3 = space();
+    			select = element("select");
+    			option0 = element("option");
+    			option0.textContent = "electron neutrino";
+    			option1 = element("option");
+    			option1.textContent = "muon neutrino";
+    			option2 = element("option");
+    			option2.textContent = "electron";
+    			option3 = element("option");
+    			option3.textContent = "quark up";
+    			option4 = element("option");
+    			option4.textContent = "quark down";
+    			option5 = element("option");
+    			option5.textContent = "tau netrino";
+    			option6 = element("option");
+    			option6.textContent = "muon";
+    			attr(h3, "class", "svelte-pikyfx");
+    			option0.__value = option0_value_value = 1.957e-3;
+    			option0.value = option0.__value;
+    			option1.__value = option1_value_value = 0.3326;
+    			option1.value = option1.__value;
+    			option2.__value = option2_value_value = 1;
+    			option2.value = option2.__value;
+    			option3.__value = option3_value_value = 4.3053;
+    			option3.value = option3.__value;
+    			option4.__value = option4_value_value = 9.1977;
+    			option4.value = option4.__value;
+    			option5.__value = option5_value_value = 35.616;
+    			option5.value = option5.__value;
+    			option6.__value = option6_value_value = 206.77;
+    			option6.value = option6.__value;
+    			attr(select, "class", "svelte-pikyfx");
+    			if (/*global_mass*/ ctx[4] === void 0) add_render_callback(() => /*select_change_handler_1*/ ctx[17].call(select));
+    		},
+    		m(target, anchor) {
+    			insert(target, h3, anchor);
+    			insert(target, t3, anchor);
+    			insert(target, select, anchor);
+    			append(select, option0);
+    			append(select, option1);
+    			append(select, option2);
+    			append(select, option3);
+    			append(select, option4);
+    			append(select, option5);
+    			append(select, option6);
+    			select_option(select, /*global_mass*/ ctx[4]);
+
+    			if (!mounted) {
+    				dispose = listen(select, "change", /*select_change_handler_1*/ ctx[17]);
+    				mounted = true;
+    			}
+    		},
+    		p(ctx, dirty) {
+    			if (dirty & /*global_mass*/ 16) {
+    				select_option(select, /*global_mass*/ ctx[4]);
+    			}
+    		},
+    		d(detaching) {
+    			if (detaching) detach(h3);
+    			if (detaching) detach(t3);
+    			if (detaching) detach(select);
+    			mounted = false;
+    			dispose();
+    		}
+    	};
+    }
+
+    // (144:82) {:else}
+    function create_else_block(ctx) {
+    	let t0;
+    	let sub;
+    	let t2;
+
+    	return {
+    		c() {
+    			t0 = text("Masses [m");
+    			sub = element("sub");
+    			sub.textContent = "e";
+    			t2 = text("]");
+    		},
+    		m(target, anchor) {
+    			insert(target, t0, anchor);
+    			insert(target, sub, anchor);
+    			insert(target, t2, anchor);
+    		},
+    		d(detaching) {
+    			if (detaching) detach(t0);
+    			if (detaching) detach(sub);
+    			if (detaching) detach(t2);
+    		}
+    	};
+    }
+
+    // (144:67) 
+    function create_if_block_2(ctx) {
+    	let t;
+
+    	return {
+    		c() {
+    			t = text("Potentials [eV]");
+    		},
+    		m(target, anchor) {
+    			insert(target, t, anchor);
+    		},
+    		d(detaching) {
+    			if (detaching) detach(t);
+    		}
+    	};
+    }
+
+    // (144:5) {#if mode === 0}
+    function create_if_block_1(ctx) {
+    	let t;
+
+    	return {
+    		c() {
+    			t = text("Barrier lengths [Å]");
+    		},
+    		m(target, anchor) {
+    			insert(target, t, anchor);
+    		},
+    		d(detaching) {
+    			if (detaching) detach(t);
+    		}
+    	};
+    }
+
+    // (148:2) {#each graphs as g, i}
+    function create_each_block_1(ctx) {
     	let div;
     	let input;
     	let t0;
     	let span;
-    	let t1_value = /*o*/ ctx[12].parameter.toPrecision(3) + "";
+    	let t1_value = /*g*/ ctx[24].value.toPrecision(3) + "";
     	let t1;
     	let t2;
     	let button;
@@ -2179,7 +2234,7 @@ var app = (function () {
     	let dispose;
 
     	function input_input_handler() {
-    		/*input_input_handler*/ ctx[10].call(input, /*each_value*/ ctx[13], /*i*/ ctx[14]);
+    		/*input_input_handler*/ ctx[19].call(input, /*each_value_1*/ ctx[27], /*i*/ ctx[28]);
     	}
 
     	return {
@@ -2193,16 +2248,16 @@ var app = (function () {
     			button = element("button");
     			t3 = space();
     			attr(input, "type", "color");
-    			attr(input, "class", "svelte-1ka0j1c");
-    			attr(button, "data-index", button_data_index_value = /*i*/ ctx[14]);
+    			attr(input, "class", "svelte-pikyfx");
+    			attr(button, "class", "remove svelte-pikyfx");
+    			attr(button, "data-index", button_data_index_value = /*i*/ ctx[28]);
     			attr(button, "title", "Remove graph");
-    			attr(button, "class", "svelte-1ka0j1c");
-    			attr(div, "class", "graph-info svelte-1ka0j1c");
+    			attr(div, "class", "graph-info svelte-pikyfx");
     		},
     		m(target, anchor) {
     			insert(target, div, anchor);
     			append(div, input);
-    			set_input_value(input, /*o*/ ctx[12].color);
+    			set_input_value(input, /*g*/ ctx[24].color);
     			append(div, t0);
     			append(div, span);
     			append(span, t1);
@@ -2213,7 +2268,7 @@ var app = (function () {
     			if (!mounted) {
     				dispose = [
     					listen(input, "input", input_input_handler),
-    					listen(button, "click", /*removeGraph*/ ctx[5])
+    					listen(button, "click", /*removeGraph*/ ctx[9])
     				];
 
     				mounted = true;
@@ -2222,11 +2277,11 @@ var app = (function () {
     		p(new_ctx, dirty) {
     			ctx = new_ctx;
 
-    			if (dirty & /*opts*/ 8) {
-    				set_input_value(input, /*o*/ ctx[12].color);
+    			if (dirty & /*graphs*/ 128) {
+    				set_input_value(input, /*g*/ ctx[24].color);
     			}
 
-    			if (dirty & /*opts*/ 8 && t1_value !== (t1_value = /*o*/ ctx[12].parameter.toPrecision(3) + "")) set_data(t1, t1_value);
+    			if (dirty & /*graphs*/ 128 && t1_value !== (t1_value = /*g*/ ctx[24].value.toPrecision(3) + "")) set_data(t1, t1_value);
     		},
     		i(local) {
     			if (!div_intro) {
@@ -2245,14 +2300,19 @@ var app = (function () {
     	};
     }
 
-    // (79:1) {#if V0 > minE && V0 < maxE}
+    // (159:1) {#if mode != 1 && global_potential > minE && global_potential < maxE}
     function create_if_block(ctx) {
     	let dataplot;
     	let current;
 
     	dataplot = new DataPlot({
     			props: {
-    				x: [0, /*V0*/ ctx[0], /*V0*/ ctx[0], /*maxE*/ ctx[2]],
+    				x: [
+    					0,
+    					/*global_potential*/ ctx[3],
+    					/*global_potential*/ ctx[3],
+    					/*maxE*/ ctx[1]
+    				],
     				y: [0, 0, 1, 1],
     				color: "#999",
     				dash: "10"
@@ -2269,7 +2329,14 @@ var app = (function () {
     		},
     		p(ctx, dirty) {
     			const dataplot_changes = {};
-    			if (dirty & /*V0, maxE*/ 5) dataplot_changes.x = [0, /*V0*/ ctx[0], /*V0*/ ctx[0], /*maxE*/ ctx[2]];
+
+    			if (dirty & /*global_potential, maxE*/ 10) dataplot_changes.x = [
+    				0,
+    				/*global_potential*/ ctx[3],
+    				/*global_potential*/ ctx[3],
+    				/*maxE*/ ctx[1]
+    			];
+
     			dataplot.$set(dataplot_changes);
     		},
     		i(local) {
@@ -2287,38 +2354,94 @@ var app = (function () {
     	};
     }
 
-    // (78:0) <Axis min_x={minE} max_x={maxE} min_y={0} max_y={1}>
-    function create_default_slot(ctx) {
-    	let t;
-    	let parametricplot;
+    // (162:1) {#each graphs as g}
+    function create_each_block(ctx) {
+    	let dataplot;
     	let current;
-    	let if_block = /*V0*/ ctx[0] > /*minE*/ ctx[1] && /*V0*/ ctx[0] < /*maxE*/ ctx[2] && create_if_block(ctx);
 
-    	parametricplot = new ParametricPlot({
+    	dataplot = new DataPlot({
     			props: {
-    				fn: /*fn*/ ctx[4],
-    				options: /*opts*/ ctx[3]
+    				x: /*xs*/ ctx[6],
+    				y: /*g*/ ctx[24].transmissions,
+    				color: /*g*/ ctx[24].color
     			}
     		});
 
     	return {
     		c() {
+    			create_component(dataplot.$$.fragment);
+    		},
+    		m(target, anchor) {
+    			mount_component(dataplot, target, anchor);
+    			current = true;
+    		},
+    		p(ctx, dirty) {
+    			const dataplot_changes = {};
+    			if (dirty & /*xs*/ 64) dataplot_changes.x = /*xs*/ ctx[6];
+    			if (dirty & /*graphs*/ 128) dataplot_changes.y = /*g*/ ctx[24].transmissions;
+    			if (dirty & /*graphs*/ 128) dataplot_changes.color = /*g*/ ctx[24].color;
+    			dataplot.$set(dataplot_changes);
+    		},
+    		i(local) {
+    			if (current) return;
+    			transition_in(dataplot.$$.fragment, local);
+    			current = true;
+    		},
+    		o(local) {
+    			transition_out(dataplot.$$.fragment, local);
+    			current = false;
+    		},
+    		d(detaching) {
+    			destroy_component(dataplot, detaching);
+    		}
+    	};
+    }
+
+    // (158:0) <Axis min_x={minE} max_x={maxE} min_y={0} max_y={1}>
+    function create_default_slot(ctx) {
+    	let t;
+    	let each_1_anchor;
+    	let current;
+    	let if_block = /*mode*/ ctx[5] != 1 && /*global_potential*/ ctx[3] > /*minE*/ ctx[0] && /*global_potential*/ ctx[3] < /*maxE*/ ctx[1] && create_if_block(ctx);
+    	let each_value = /*graphs*/ ctx[7];
+    	let each_blocks = [];
+
+    	for (let i = 0; i < each_value.length; i += 1) {
+    		each_blocks[i] = create_each_block(get_each_context(ctx, each_value, i));
+    	}
+
+    	const out = i => transition_out(each_blocks[i], 1, 1, () => {
+    		each_blocks[i] = null;
+    	});
+
+    	return {
+    		c() {
     			if (if_block) if_block.c();
     			t = space();
-    			create_component(parametricplot.$$.fragment);
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].c();
+    			}
+
+    			each_1_anchor = empty();
     		},
     		m(target, anchor) {
     			if (if_block) if_block.m(target, anchor);
     			insert(target, t, anchor);
-    			mount_component(parametricplot, target, anchor);
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].m(target, anchor);
+    			}
+
+    			insert(target, each_1_anchor, anchor);
     			current = true;
     		},
     		p(ctx, dirty) {
-    			if (/*V0*/ ctx[0] > /*minE*/ ctx[1] && /*V0*/ ctx[0] < /*maxE*/ ctx[2]) {
+    			if (/*mode*/ ctx[5] != 1 && /*global_potential*/ ctx[3] > /*minE*/ ctx[0] && /*global_potential*/ ctx[3] < /*maxE*/ ctx[1]) {
     				if (if_block) {
     					if_block.p(ctx, dirty);
 
-    					if (dirty & /*V0, minE, maxE*/ 7) {
+    					if (dirty & /*mode, global_potential, minE, maxE*/ 43) {
     						transition_in(if_block, 1);
     					}
     				} else {
@@ -2337,26 +2460,58 @@ var app = (function () {
     				check_outros();
     			}
 
-    			const parametricplot_changes = {};
-    			if (dirty & /*fn*/ 16) parametricplot_changes.fn = /*fn*/ ctx[4];
-    			if (dirty & /*opts*/ 8) parametricplot_changes.options = /*opts*/ ctx[3];
-    			parametricplot.$set(parametricplot_changes);
+    			if (dirty & /*xs, graphs*/ 192) {
+    				each_value = /*graphs*/ ctx[7];
+    				let i;
+
+    				for (i = 0; i < each_value.length; i += 1) {
+    					const child_ctx = get_each_context(ctx, each_value, i);
+
+    					if (each_blocks[i]) {
+    						each_blocks[i].p(child_ctx, dirty);
+    						transition_in(each_blocks[i], 1);
+    					} else {
+    						each_blocks[i] = create_each_block(child_ctx);
+    						each_blocks[i].c();
+    						transition_in(each_blocks[i], 1);
+    						each_blocks[i].m(each_1_anchor.parentNode, each_1_anchor);
+    					}
+    				}
+
+    				group_outros();
+
+    				for (i = each_value.length; i < each_blocks.length; i += 1) {
+    					out(i);
+    				}
+
+    				check_outros();
+    			}
     		},
     		i(local) {
     			if (current) return;
     			transition_in(if_block);
-    			transition_in(parametricplot.$$.fragment, local);
+
+    			for (let i = 0; i < each_value.length; i += 1) {
+    				transition_in(each_blocks[i]);
+    			}
+
     			current = true;
     		},
     		o(local) {
     			transition_out(if_block);
-    			transition_out(parametricplot.$$.fragment, local);
+    			each_blocks = each_blocks.filter(Boolean);
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				transition_out(each_blocks[i]);
+    			}
+
     			current = false;
     		},
     		d(detaching) {
     			if (if_block) if_block.d(detaching);
     			if (detaching) detach(t);
-    			destroy_component(parametricplot, detaching);
+    			destroy_each(each_blocks, detaching);
+    			if (detaching) detach(each_1_anchor);
     		}
     	};
     }
@@ -2378,31 +2533,49 @@ var app = (function () {
     	let t7;
     	let h31;
     	let t9;
-    	let input2;
-    	let t10;
-    	let t11;
-    	let t12;
-    	let h32;
+    	let select;
+    	let option0;
+    	let option1;
+    	let option2;
+    	let t13;
     	let t14;
-    	let input3;
     	let t15;
-    	let div1;
     	let t16;
+    	let h32;
+    	let t17;
+    	let input2;
+    	let t18;
+    	let button;
+    	let t19;
+    	let div1;
+    	let t20;
     	let axis;
     	let current;
     	let mounted;
     	let dispose;
-    	let each_value = /*opts*/ ctx[3];
+    	let if_block0 = /*mode*/ ctx[5] !== 0 && create_if_block_5(ctx);
+    	let if_block1 = /*mode*/ ctx[5] !== 1 && create_if_block_4(ctx);
+    	let if_block2 = /*mode*/ ctx[5] !== 2 && create_if_block_3(ctx);
+
+    	function select_block_type(ctx, dirty) {
+    		if (/*mode*/ ctx[5] === 0) return create_if_block_1;
+    		if (/*mode*/ ctx[5] === 1) return create_if_block_2;
+    		return create_else_block;
+    	}
+
+    	let current_block_type = select_block_type(ctx);
+    	let if_block3 = current_block_type(ctx);
+    	let each_value_1 = /*graphs*/ ctx[7];
     	let each_blocks = [];
 
-    	for (let i = 0; i < each_value.length; i += 1) {
-    		each_blocks[i] = create_each_block(get_each_context(ctx, each_value, i));
+    	for (let i = 0; i < each_value_1.length; i += 1) {
+    		each_blocks[i] = create_each_block_1(get_each_context_1(ctx, each_value_1, i));
     	}
 
     	axis = new Axis({
     			props: {
-    				min_x: /*minE*/ ctx[1],
-    				max_x: /*maxE*/ ctx[2],
+    				min_x: /*minE*/ ctx[0],
+    				max_x: /*maxE*/ ctx[1],
     				min_y: 0,
     				max_y: 1,
     				$$slots: { default: [create_default_slot] },
@@ -2428,52 +2601,68 @@ var app = (function () {
     			input1 = element("input");
     			t7 = space();
     			h31 = element("h3");
-    			h31.textContent = "Barrier potential [eV]";
+    			h31.textContent = "Fixed data selection";
     			t9 = space();
-    			input2 = element("input");
-    			t10 = space();
-    			t11 = text(/*V0*/ ctx[0]);
-    			t12 = space();
-    			h32 = element("h3");
-    			h32.textContent = "Barrier length [Å]";
+    			select = element("select");
+    			option0 = element("option");
+    			option0.textContent = "Potential and mass";
+    			option1 = element("option");
+    			option1.textContent = "Barrier width and mass";
+    			option2 = element("option");
+    			option2.textContent = "Barrier width and potential";
+    			t13 = space();
+    			if (if_block0) if_block0.c();
     			t14 = space();
-    			input3 = element("input");
+    			if (if_block1) if_block1.c();
     			t15 = space();
+    			if (if_block2) if_block2.c();
+    			t16 = space();
+    			h32 = element("h3");
+    			if_block3.c();
+    			t17 = space();
+    			input2 = element("input");
+    			t18 = space();
+    			button = element("button");
+    			t19 = space();
     			div1 = element("div");
 
     			for (let i = 0; i < each_blocks.length; i += 1) {
     				each_blocks[i].c();
     			}
 
-    			t16 = space();
+    			t20 = space();
     			create_component(axis.$$.fragment);
-    			attr(h30, "class", "svelte-1ka0j1c");
+    			attr(h30, "class", "svelte-pikyfx");
     			attr(label0, "for", "#minE");
     			attr(input0, "type", "number");
     			attr(input0, "id", "minE");
     			attr(input0, "min", "0");
     			input0.value = "0";
-    			attr(input0, "max", input0_max_value = /*maxE*/ ctx[2] - .01);
-    			attr(input0, "class", "svelte-1ka0j1c");
+    			attr(input0, "max", input0_max_value = /*maxE*/ ctx[1] - .01);
+    			attr(input0, "class", "svelte-pikyfx");
     			attr(label1, "for", "#maxE");
     			attr(input1, "type", "number");
     			attr(input1, "id", "maxE");
-    			attr(input1, "min", input1_min_value = /*minE*/ ctx[1] + .01);
+    			attr(input1, "min", input1_min_value = /*minE*/ ctx[0] + .01);
     			input1.value = "15";
-    			attr(input1, "class", "svelte-1ka0j1c");
-    			attr(div0, "class", "grid2by2 svelte-1ka0j1c");
-    			attr(h31, "class", "svelte-1ka0j1c");
-    			attr(input2, "type", "range");
-    			attr(input2, "min", "0.05");
-    			attr(input2, "max", "20");
-    			attr(input2, "step", "0.05");
-    			attr(input2, "class", "svelte-1ka0j1c");
-    			attr(h32, "class", "svelte-1ka0j1c");
-    			attr(input3, "type", "number");
-    			attr(input3, "min", "0");
-    			attr(input3, "class", "svelte-1ka0j1c");
-    			attr(div1, "class", "lengths svelte-1ka0j1c");
-    			attr(div2, "class", "inputs svelte-1ka0j1c");
+    			attr(input1, "class", "svelte-pikyfx");
+    			attr(div0, "class", "grid2by2 svelte-pikyfx");
+    			attr(h31, "class", "svelte-pikyfx");
+    			option0.__value = 0;
+    			option0.value = option0.__value;
+    			option1.__value = 1;
+    			option1.value = option1.__value;
+    			option2.__value = 2;
+    			option2.value = option2.__value;
+    			attr(select, "class", "svelte-pikyfx");
+    			if (/*mode*/ ctx[5] === void 0) add_render_callback(() => /*select_change_handler*/ ctx[14].call(select));
+    			attr(h32, "class", "svelte-pikyfx");
+    			attr(input2, "type", "number");
+    			attr(input2, "min", "0");
+    			attr(input2, "class", "svelte-pikyfx");
+    			attr(button, "class", "add svelte-pikyfx");
+    			attr(div1, "class", "legends svelte-pikyfx");
+    			attr(div2, "class", "inputs svelte-pikyfx");
     		},
     		m(target, anchor) {
     			insert(target, div2, anchor);
@@ -2490,66 +2679,124 @@ var app = (function () {
     			append(div2, t7);
     			append(div2, h31);
     			append(div2, t9);
-    			append(div2, input2);
-    			set_input_value(input2, /*V0*/ ctx[0]);
-    			append(div2, t10);
-    			append(div2, t11);
-    			append(div2, t12);
-    			append(div2, h32);
+    			append(div2, select);
+    			append(select, option0);
+    			append(select, option1);
+    			append(select, option2);
+    			select_option(select, /*mode*/ ctx[5]);
+    			append(div2, t13);
+    			if (if_block0) if_block0.m(div2, null);
     			append(div2, t14);
-    			append(div2, input3);
+    			if (if_block1) if_block1.m(div2, null);
     			append(div2, t15);
+    			if (if_block2) if_block2.m(div2, null);
+    			append(div2, t16);
+    			append(div2, h32);
+    			if_block3.m(h32, null);
+    			append(div2, t17);
+    			append(div2, input2);
+    			/*input2_binding*/ ctx[18](input2);
+    			append(div2, t18);
+    			append(div2, button);
+    			append(div2, t19);
     			append(div2, div1);
 
     			for (let i = 0; i < each_blocks.length; i += 1) {
     				each_blocks[i].m(div1, null);
     			}
 
-    			insert(target, t16, anchor);
+    			insert(target, t20, anchor);
     			mount_component(axis, target, anchor);
     			current = true;
 
     			if (!mounted) {
     				dispose = [
     					action_destroyer(forceBounds.call(null, input0)),
-    					listen(input0, "safe-change", /*safe_change_handler*/ ctx[7]),
+    					listen(input0, "safe-change", /*safe_change_handler*/ ctx[12]),
     					action_destroyer(forceBounds.call(null, input1)),
-    					listen(input1, "safe-change", /*safe_change_handler_1*/ ctx[8]),
-    					listen(input2, "change", /*input2_change_input_handler*/ ctx[9]),
-    					listen(input2, "input", /*input2_change_input_handler*/ ctx[9]),
-    					listen(input3, "change", /*addLength*/ ctx[6])
+    					listen(input1, "safe-change", /*safe_change_handler_1*/ ctx[13]),
+    					listen(select, "change", /*select_change_handler*/ ctx[14]),
+    					listen(input2, "keydown", /*onEnter*/ ctx[11]),
+    					listen(button, "click", /*add*/ ctx[10])
     				];
 
     				mounted = true;
     			}
     		},
     		p(ctx, [dirty]) {
-    			if (!current || dirty & /*maxE*/ 4 && input0_max_value !== (input0_max_value = /*maxE*/ ctx[2] - .01)) {
+    			if (!current || dirty & /*maxE*/ 2 && input0_max_value !== (input0_max_value = /*maxE*/ ctx[1] - .01)) {
     				attr(input0, "max", input0_max_value);
     			}
 
-    			if (!current || dirty & /*minE*/ 2 && input1_min_value !== (input1_min_value = /*minE*/ ctx[1] + .01)) {
+    			if (!current || dirty & /*minE*/ 1 && input1_min_value !== (input1_min_value = /*minE*/ ctx[0] + .01)) {
     				attr(input1, "min", input1_min_value);
     			}
 
-    			if (dirty & /*V0*/ 1) {
-    				set_input_value(input2, /*V0*/ ctx[0]);
+    			if (dirty & /*mode*/ 32) {
+    				select_option(select, /*mode*/ ctx[5]);
     			}
 
-    			if (!current || dirty & /*V0*/ 1) set_data(t11, /*V0*/ ctx[0]);
+    			if (/*mode*/ ctx[5] !== 0) {
+    				if (if_block0) {
+    					if_block0.p(ctx, dirty);
+    				} else {
+    					if_block0 = create_if_block_5(ctx);
+    					if_block0.c();
+    					if_block0.m(div2, t14);
+    				}
+    			} else if (if_block0) {
+    				if_block0.d(1);
+    				if_block0 = null;
+    			}
 
-    			if (dirty & /*removeGraph, opts*/ 40) {
-    				each_value = /*opts*/ ctx[3];
+    			if (/*mode*/ ctx[5] !== 1) {
+    				if (if_block1) {
+    					if_block1.p(ctx, dirty);
+    				} else {
+    					if_block1 = create_if_block_4(ctx);
+    					if_block1.c();
+    					if_block1.m(div2, t15);
+    				}
+    			} else if (if_block1) {
+    				if_block1.d(1);
+    				if_block1 = null;
+    			}
+
+    			if (/*mode*/ ctx[5] !== 2) {
+    				if (if_block2) {
+    					if_block2.p(ctx, dirty);
+    				} else {
+    					if_block2 = create_if_block_3(ctx);
+    					if_block2.c();
+    					if_block2.m(div2, t16);
+    				}
+    			} else if (if_block2) {
+    				if_block2.d(1);
+    				if_block2 = null;
+    			}
+
+    			if (current_block_type !== (current_block_type = select_block_type(ctx))) {
+    				if_block3.d(1);
+    				if_block3 = current_block_type(ctx);
+
+    				if (if_block3) {
+    					if_block3.c();
+    					if_block3.m(h32, null);
+    				}
+    			}
+
+    			if (dirty & /*removeGraph, graphs*/ 640) {
+    				each_value_1 = /*graphs*/ ctx[7];
     				let i;
 
-    				for (i = 0; i < each_value.length; i += 1) {
-    					const child_ctx = get_each_context(ctx, each_value, i);
+    				for (i = 0; i < each_value_1.length; i += 1) {
+    					const child_ctx = get_each_context_1(ctx, each_value_1, i);
 
     					if (each_blocks[i]) {
     						each_blocks[i].p(child_ctx, dirty);
     						transition_in(each_blocks[i], 1);
     					} else {
-    						each_blocks[i] = create_each_block(child_ctx);
+    						each_blocks[i] = create_each_block_1(child_ctx);
     						each_blocks[i].c();
     						transition_in(each_blocks[i], 1);
     						each_blocks[i].m(div1, null);
@@ -2560,14 +2807,14 @@ var app = (function () {
     					each_blocks[i].d(1);
     				}
 
-    				each_blocks.length = each_value.length;
+    				each_blocks.length = each_value_1.length;
     			}
 
     			const axis_changes = {};
-    			if (dirty & /*minE*/ 2) axis_changes.min_x = /*minE*/ ctx[1];
-    			if (dirty & /*maxE*/ 4) axis_changes.max_x = /*maxE*/ ctx[2];
+    			if (dirty & /*minE*/ 1) axis_changes.min_x = /*minE*/ ctx[0];
+    			if (dirty & /*maxE*/ 2) axis_changes.max_x = /*maxE*/ ctx[1];
 
-    			if (dirty & /*$$scope, fn, opts, V0, maxE, minE*/ 32799) {
+    			if (dirty & /*$$scope, graphs, xs, global_potential, maxE, mode, minE*/ 536871147) {
     				axis_changes.$$scope = { dirty, ctx };
     			}
 
@@ -2576,7 +2823,7 @@ var app = (function () {
     		i(local) {
     			if (current) return;
 
-    			for (let i = 0; i < each_value.length; i += 1) {
+    			for (let i = 0; i < each_value_1.length; i += 1) {
     				transition_in(each_blocks[i]);
     			}
 
@@ -2589,8 +2836,13 @@ var app = (function () {
     		},
     		d(detaching) {
     			if (detaching) detach(div2);
+    			if (if_block0) if_block0.d();
+    			if (if_block1) if_block1.d();
+    			if (if_block2) if_block2.d();
+    			if_block3.d();
+    			/*input2_binding*/ ctx[18](null);
     			destroy_each(each_blocks, detaching);
-    			if (detaching) detach(t16);
+    			if (detaching) detach(t20);
     			destroy_component(axis, detaching);
     			mounted = false;
     			run_all(dispose);
@@ -2616,67 +2868,163 @@ var app = (function () {
     }
 
     function instance($$self, $$props, $$invalidate) {
-    	let fn;
+    	let xs;
     	let minE = 0;
 
     	/** maximum Energy [eV] */
     	let maxE = 15;
 
+    	/** barrier width [A]*/
+    	let global_length = 3;
+
     	/** barrier poential [eV] */
-    	let V0 = 5;
+    	let global_potential = 5;
 
-    	/**@type {{color: string, parameter: number}[]}*/
-    	const opts = [];
+    	/** particle mass in terms of electron mass */
+    	let global_mass = 1;
 
-    	function addGraph(l) {
-    		opts.push({ color: randomColor(), parameter: l });
-    		$$invalidate(3, opts);
+    	/**
+     * Input mode: \
+     * 0 - fixed V0 and m \
+     * 1 - fixed l and m \
+     * 2 - fixed l and V0
+     */
+    	let mode = 0;
+
+    	/**@type {{color: string, value: number, transmissions: number[]}[]}*/
+    	let graphs = [];
+
+    	/**
+     * @param {number} pot barrier potential
+     * @param {number} length
+     * @param {number} mass
+     * @param {number[]} arr
+     * @returns {number[]}
+     */
+    	function calculate(pot, length, mass, arr) {
+    		if (!arr) arr = new Array(500);
+    		const pot_index = xs.indexOf(pot);
+    		var i = 0;
+
+    		if (pot_index !== -1) {
+    			for (; i < pot_index; i++) arr[i] = transmission(xs[i], pot, length, mass);
+    			arr[pot_index] = transmission_pot(pot, length, mass);
+    			i = pot_index + 1;
+    		}
+
+    		for (; i < 500; i++) arr[i] = transmission(xs[i], pot, length, mass);
+    		return arr;
     	}
+
+    	const evaluators = [
+    		(len, arr) => calculate(global_potential, len, global_mass, arr),
+    		(pot, arr) => calculate(pot, global_length, global_mass, arr),
+    		(mass, arr) => calculate(global_potential, global_length, mass, arr)
+    	];
 
     	function removeGraph(e) {
-    		const i = +e.target.value;
-    		opts.splice(i, 1);
-    		$$invalidate(3, opts);
+    		const i = +e.target.getAttribute('data-index');
+    		graphs.splice(i, 1);
+    		($$invalidate(7, graphs), $$invalidate(5, mode));
     	}
 
-    	function addLength(e) {
-    		const t = e.target;
-    		var v = +t.value;
-    		t.value = '';
-    		if (v <= 0) return;
-    		addGraph(v);
+    	function updateGraphs() {
+    		const LEN = graphs.length;
+    		for (var i = 0; i < LEN; i++) $$invalidate(7, graphs[i].transmissions = evaluators[mode](graphs[i].value, graphs[i].transmissions), graphs);
     	}
 
-    	const safe_change_handler = e => $$invalidate(1, minE = e.detail);
-    	const safe_change_handler_1 = e => $$invalidate(2, maxE = e.detail);
+    	function addGraph(v) {
+    		graphs.push({
+    			value: v,
+    			transmissions: evaluators[mode](v),
+    			color: randomColor()
+    		});
 
-    	function input2_change_input_handler() {
-    		V0 = to_number(this.value);
-    		$$invalidate(0, V0);
+    		($$invalidate(7, graphs), $$invalidate(5, mode));
     	}
 
-    	function input_input_handler(each_value, i) {
-    		each_value[i].color = this.value;
-    		$$invalidate(3, opts);
+    	let currentInput;
+
+    	function add() {
+    		const v = +currentInput.value;
+    		$$invalidate(8, currentInput.value = '', currentInput);
+    		if (v > 0) addGraph(v);
+    	}
+
+    	/**@param {KeyboardEvent} e*/
+    	function onEnter(e) {
+    		if (e.key === "Enter") add();
+    	}
+
+    	const safe_change_handler = e => $$invalidate(0, minE = e.detail);
+    	const safe_change_handler_1 = e => $$invalidate(1, maxE = e.detail);
+
+    	function select_change_handler() {
+    		mode = select_value(this);
+    		$$invalidate(5, mode);
+    	}
+
+    	function input_change_input_handler() {
+    		global_length = to_number(this.value);
+    		$$invalidate(2, global_length);
+    	}
+
+    	function input_change_input_handler_1() {
+    		global_potential = to_number(this.value);
+    		$$invalidate(3, global_potential);
+    	}
+
+    	function select_change_handler_1() {
+    		global_mass = select_value(this);
+    		$$invalidate(4, global_mass);
+    	}
+
+    	function input2_binding($$value) {
+    		binding_callbacks[$$value ? 'unshift' : 'push'](() => {
+    			currentInput = $$value;
+    			$$invalidate(8, currentInput);
+    		});
+    	}
+
+    	function input_input_handler(each_value_1, i) {
+    		each_value_1[i].color = this.value;
+    		($$invalidate(7, graphs), $$invalidate(5, mode));
     	}
 
     	$$self.$$.update = () => {
-    		if ($$self.$$.dirty & /*V0*/ 1) {
-    			$$invalidate(4, fn = (min, max, sample, params) => table(min, max, sample, V0, params));
+    		if ($$self.$$.dirty & /*mode*/ 32) {
+    			mode + 1 && $$invalidate(7, graphs = []);
+    		}
+
+    		if ($$self.$$.dirty & /*minE, maxE*/ 3) {
+    			$$invalidate(6, xs = new LinearSpace(minE, maxE, 500, minE == 0));
+    		}
+
+    		if ($$self.$$.dirty & /*xs, global_length, global_potential, global_mass*/ 92) {
+    			(xs || global_length || global_potential || global_mass) && updateGraphs();
     		}
     	};
 
     	return [
-    		V0,
     		minE,
     		maxE,
-    		opts,
-    		fn,
+    		global_length,
+    		global_potential,
+    		global_mass,
+    		mode,
+    		xs,
+    		graphs,
+    		currentInput,
     		removeGraph,
-    		addLength,
+    		add,
+    		onEnter,
     		safe_change_handler,
     		safe_change_handler_1,
-    		input2_change_input_handler,
+    		select_change_handler,
+    		input_change_input_handler,
+    		input_change_input_handler_1,
+    		select_change_handler_1,
+    		input2_binding,
     		input_input_handler
     	];
     }

@@ -63,21 +63,6 @@ export default class Matrix2x2 {
 
         return this;
     }
-    /**
-     * Copies a matrix into a new one
-     * @param {Matrix2x2} m 
-     */
-    static copy(m) { return new Matrix2x2().set_a(m.a).set_b(m.b).set_c(m.c).set_d(m.d) }
-    /**
-     * Multiplies several matrices, returning a new one
-     * @param {Matrix2x2}
-     */
-    static multiply(...m) {
-        const l = m.length;
-        const res = Matrix2x2.copy(m[0]);
-        for(var i=0; i<l; i++) res.mul(m[i]);
-        return res;
-    }
 }
 /**
  * Utility complex number: do not use.\

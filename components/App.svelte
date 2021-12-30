@@ -1,42 +1,92 @@
 <script>
 	import { fade } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing'
-	import { table } from '@utils/transmission.js';
+	import { LinearSpace } from '@utils/linear.js';
+	import { transmission, transmission_pot } from '@utils/transmission.js';
 	import randomColor from '@utils/randomColor.js';
 
 	import Axis from './Axis.svelte';
 	import DataPlot from './DataPlot.svelte';
-	import ParametricPlot from './ParametricPlot.svelte';
-
 
 	/** maximum Energy [eV] */
     let minE = 0;
     /** maximum Energy [eV] */
     let maxE = 15;
+	/** barrier width [A]*/
+	let global_length = 3;
     /** barrier poential [eV] */
-    let V0 = 5;
+    let global_potential = 5;
+	/** particle mass in terms of electron mass */
+	let global_mass = 1;
 
-	$: fn = (min, max, sample, params) => table(min, max, sample, V0, params);
+	/**
+	 * Input mode: \
+	 * 0 - fixed V0 and m \
+	 * 1 - fixed l and m \
+	 * 2 - fixed l and V0
+	 */
+	let mode = 0;
+
 	
-	/**@type {{color: string, parameter: number}[]}*/
-	const opts = [];
-	function addGraph(l) {
-		opts.push({color: randomColor(), parameter: l});
-		opts = opts;
-	}
-	function removeGraph(e) {
-		const i = +e.target.value;
-		opts.splice(i,1);
-		opts = opts;
-	}
+	/**@type {{color: string, value: number, transmissions: number[]}[]}*/
+	let graphs = [];
+	$: (mode+1) && (graphs = []);
+	
+	$: xs = new LinearSpace(minE, maxE, 500, minE == 0);
 
-	function addLength(e) {
-		const t = e.target;
-		var v = +t.value;
-		t.value = '';
-		if(v <= 0) return;
-		addGraph(v);
+	/**
+	 * @param {number} pot barrier potential
+	 * @param {number} length
+	 * @param {number} mass
+	 * @param {number[]} arr
+	 * @returns {number[]}
+	 */
+	function calculate(pot, length, mass, arr) {
+		if(!arr) arr = new Array(500);
+		const pot_index = xs.indexOf(pot);
+		var i = 0;
+		if(pot_index !== -1) {
+			for(; i<pot_index; i++) arr[i] = transmission(xs[i], pot, length, mass);
+			arr[pot_index] = transmission_pot(pot, length, mass);
+			i = pot_index+1;
+		}
+		for(; i<500; i++) arr[i] = transmission(xs[i], pot, length, mass);
+		return arr;
 	}
+	const evaluators = [
+		(len, arr) => calculate(global_potential, len, global_mass, arr),
+		(pot, arr) => calculate(pot, global_length, global_mass, arr),
+		(mass, arr) => calculate(global_potential, global_length, mass, arr),
+	]
+	
+	function removeGraph(e) {
+		const i = +e.target.getAttribute('data-index');
+		graphs.splice(i, 1);
+		graphs = graphs;
+	}
+	function updateGraphs() {
+		const LEN = graphs.length;
+		for(var i=0; i<LEN; i++) graphs[i].transmissions = evaluators[mode](graphs[i].value, graphs[i].transmissions);
+	}
+	$: (xs || global_length || global_potential || global_mass) && updateGraphs();
+	function addGraph(v) {
+		graphs.push({
+			value: v, 
+			transmissions: evaluators[mode](v),
+			color: randomColor(), 
+		});
+		graphs = graphs;
+	}
+	let currentInput;
+	function add() {
+		const v = +currentInput.value;
+		currentInput.value = '';
+		if(v > 0) addGraph(v);
+	}
+	/**@param {KeyboardEvent} e*/
+	function onEnter(e) { if(e.key === "Enter") add()}
+
+
 	function forceBounds(node) {
 		function change(e) {
 			const t = e.target;
@@ -60,26 +110,58 @@
 		<label for="#maxE">Maximum:</label>
 		<input type="number" id="maxE" min={minE+.01} value="15" use:forceBounds on:safe-change={e => maxE = e.detail}>
 	</div>
-	<h3>Barrier potential [eV]</h3>
-	<input type="range" min="0.05" max="20" step="0.05" bind:value={V0}> {V0}
-	<h3>Barrier length [&Aring;]</h3>
-	<input type="number" min="0" on:change={addLength}>
-	<div class="lengths">
-		{#each opts as o, i}
+
+	<h3>Fixed data selection</h3>
+	<select bind:value={mode}>
+		<option value={0}>Potential and mass</option>
+		<option value={1}>Barrier width and mass</option>
+		<option value={2}>Barrier width and potential</option>
+	</select>
+
+	{#if mode !== 0}
+		<h3>Barrier length [&Aring;]</h3>
+		<input type="range" min="0.025" max="10" step="0.025" bind:value={global_length}> {global_length}
+	{/if}
+
+	{#if mode !== 1}
+		<h3>Barrier potential [eV]</h3>
+		<input type="range" min="0.05" max="20" step="0.05" bind:value={global_potential}> {global_potential}
+	{/if}
+
+	{#if mode !== 2}
+		<h3>Particle mass [m<sub>e</sub>]</h3>
+		<select bind:value={global_mass}>
+			<option value={1.957e-3}>electron neutrino</option>
+			<option value={0.3326}>muon neutrino</option>
+			<option value={1}>electron</option>
+			<option value={4.3053}>quark up</option>
+			<option value={9.1977}>quark down</option>
+			<option value={35.616}>tau netrino</option>
+			<option value={206.77}>muon</option>
+		</select>
+	{/if}
+
+	<h3>{#if mode === 0}Barrier lengths [&Aring;]{:else if mode === 1}Potentials [eV]{:else}Masses [m<sub>e</sub>]{/if}</h3>
+	<input type="number" min="0" bind:this={currentInput} on:keydown={onEnter}>
+	<button class="add" on:click={add}></button>
+	<div class="legends">
+		{#each graphs as g, i}
 			<div class="graph-info" in:fade={{duration: 250, easing: cubicOut}}>
-				<input type="color" bind:value={o.color}>
-				<span>{o.parameter.toPrecision(3)}</span>
-				<button data-index="{i}" on:click={removeGraph} title="Remove graph"></button>
+				<input type="color" bind:value={g.color}>
+				<span>{g.value.toPrecision(3)}</span>
+				<button class="remove" data-index="{i}" on:click={removeGraph} title="Remove graph"></button>
 			</div>
 		{/each}
 	</div>
 </div>
 
 <Axis min_x={minE} max_x={maxE} min_y={0} max_y={1}>
-	{#if V0 > minE && V0 < maxE}
-		<DataPlot x={[0, V0, V0, maxE]} y={[0, 0, 1, 1]} color="#999" dash="10" />
+	{#if mode != 1 && global_potential > minE && global_potential < maxE}
+		<DataPlot x={[0, global_potential, global_potential, maxE]} y={[0, 0, 1, 1]} color="#999" dash="10" />
 	{/if}
-	<ParametricPlot fn={fn} options={opts} />
+	{#each graphs as g}
+		<DataPlot x={xs} y={g.transmissions} color={g.color} />
+	{/each}
 </Axis>
 
 
@@ -107,17 +189,23 @@
 		row-gap: .5rem;
 		align-items: center;
 	}
+	select {
+		font-size: 1em;
+		padding: .25rem .5rem;
+		border-radius: .25em;
+		border: 2px solid #e1e1e1;
+	}
 	input[type=range] {
 		vertical-align: middle;
 		width: 25ch;
 	}
-	.lengths {
+	.legends {
 		display: flex;
 		flex-wrap: wrap;
 		column-gap: 1.7ch;
 		row-gap: 1.7ch;
 		align-items: center;
-		margin-top: 1rem;
+		margin-top: 1.5rem;
 	}
 	input[type=number] {
 		width: 10ch;
@@ -148,7 +236,13 @@
 		border: none;
 		background-color: transparent;
 	}
-	.graph-info button {
+
+	button.add {
+		vertical-align: middle;
+		margin-inline: 1ch;
+	}
+	button.add,
+	button.remove {
 		background: transparent;
 		border: 0;
 		width: .9rem;
@@ -156,8 +250,10 @@
 		position: relative;
 		cursor: pointer;
 	}
-	.graph-info button::before,
-	.graph-info button::after {
+	button.add::before,
+	button.add::after,
+	button.remove::before,
+	button.remove::after {
 		content: '';
 		position: absolute;
 		top: 50%;
@@ -166,8 +262,10 @@
 		width: 100%;
 		outline: 1px solid #444;
 	}
-	.graph-info button::before {--rot: 45deg;}
-	.graph-info button::after {--rot: -45deg;}
+	button.add::before {--rot: 0deg}
+	button.add::after {--rot: 90deg}
+	button.remove::before {--rot: 45deg;}
+	button.remove::after {--rot: -45deg;}
 	
 	:global(.axis) {
 		margin: auto;

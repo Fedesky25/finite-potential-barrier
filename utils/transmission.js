@@ -44,13 +44,42 @@ function compute(l) {
  * @param {number} E energy [Ry]
  * @param {number} V0 potential [Ry]
  * @param {number} l barrier width [a.u.]
+ * @param {number} m particle mass [electrom masses]
  * @returns {number} transmission coefficient
  */
-export function transmission(E, V0, l) {
-    k.becomes(-E,0).pow_r(.5);     // k^2 = -E 2m/h^2 
-    if(Math.abs((E-V0)/E) < 2*Number.EPSILON) return 1/k.mul_r(l).intoExp().squareModulus;
-    b.becomes(V0-E,0).pow_r(.5);   // beta^2 = (V0-E) 2m/h^2
+export function transmission(E, V0, l, m) {
+    k.becomes(-m*E,0).pow_r(.5);     // k^2 = -E 2m/h^2 
+    b.becomes(m*(V0-E),0).pow_r(.5);   // beta^2 = (V0-E) 2m/h^2
     return compute(l);
+}
+
+/**
+ * Computesth transmission coefficient when the energy equals the potential
+ * @param {number} E energy or potential [Ry]
+ * @param {number} l barrier width [a.u.]
+ * @param {number} m particle mass [electrom masses]
+ * @returns {number}
+ */
+export function transmission_pot(E, l, m) {
+    k.becomes(-m*E,0).pow_r(.5);
+    // M1 = [1, 1; k, -k]
+    M[0].a.toOne();
+    M[0].b.toOne();
+    M[0].c.eq(k);
+    M[0].d.eq(k).toOpposite();
+    // M2 = [1, -l; 0, 1]
+    M[1].a.toOne();
+    M[1].b.becomes(-l,0);
+    M[1].c.toZero();
+    M[1].d.toOne();
+    // M4 = [exp(k*l), exp(-k*l); k*exp(k*l), -k*exp(-k*l)]
+    M[3].a.eq(k).mul_r(l).intoExp();
+    M[3].b.eq(M[3].a).toReciprocal();
+    M[3].c.eq(M[3].a).mul(k);
+    M[3].d.eq(M[3].b).mul(k).toOpposite();
+
+    M[0].toInverse().mul_right(M[1]).mul_right(M[3]);
+    return 1/M[3].a.squareModulus;
 }
 
 
