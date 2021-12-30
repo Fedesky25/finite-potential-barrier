@@ -105,7 +105,7 @@ export class LinearSpace extends Array {
      */
     indexOf(x) {
         const i = Math.round((x-this.min)/this.span);
-        if(i >= 0 && i < this.length && Math.abs((this[i]-x)/this[i]) < this.span*0.05) return i;
+        if(i >= 0 && i < this.length && Math.abs(this[i]-x) < this.span*0.05) return i;
         else return -1;
     }
     /**
@@ -116,6 +116,7 @@ export class LinearSpace extends Array {
      */
     includes(x) {return this.indexOf(x) !== -1}
 }
+if(typeof window !== "undefined") Object.defineProperty(window, "LinearSpace", {value: LinearSpace});
 
 
 // function LinearSpace2(min, max, points) {

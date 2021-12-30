@@ -2,6 +2,7 @@
 	import { fade } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing'
 	import { LinearSpace } from '@utils/linear.js';
+	import { eV2Ry, A2au } from '@utils/convert.js';
 	import { transmission, transmission_pot } from '@utils/transmission.js';
 	import randomColor from '@utils/randomColor.js';
 
@@ -46,11 +47,11 @@
 		const pot_index = xs.indexOf(pot);
 		var i = 0;
 		if(pot_index !== -1) {
-			for(; i<pot_index; i++) arr[i] = transmission(xs[i], pot, length, mass);
-			arr[pot_index] = transmission_pot(pot, length, mass);
+			for(; i<pot_index; i++) arr[i] = transmission(xs[i]*eV2Ry, pot*eV2Ry, length*A2au, mass);
+			arr[pot_index] = transmission_pot(pot*eV2Ry, length*A2au, mass);
 			i = pot_index+1;
 		}
-		for(; i<500; i++) arr[i] = transmission(xs[i], pot, length, mass);
+		for(; i<500; i++) arr[i] = transmission(xs[i]*eV2Ry, pot*eV2Ry, length*A2au, mass)
 		return arr;
 	}
 	const evaluators = [
@@ -129,15 +130,16 @@
 	{/if}
 
 	{#if mode !== 2}
-		<h3>Particle mass [m<sub>e</sub>]</h3>
+		<h3>Particle mass</h3>
 		<select bind:value={global_mass}>
 			<option value={1.957e-3}>electron neutrino</option>
 			<option value={0.3326}>muon neutrino</option>
 			<option value={1}>electron</option>
 			<option value={4.3053}>quark up</option>
 			<option value={9.1977}>quark down</option>
-			<option value={35.616}>tau netrino</option>
+			<option value={35.616}>tau neutrino</option>
 			<option value={206.77}>muon</option>
+			<option value={1836.1}>proton</option>
 		</select>
 	{/if}
 
@@ -213,6 +215,7 @@
 		padding: .25rem .5rem;
 		border-radius: .25em;
 		border: 2px solid #e1e1e1;
+		vertical-align: middle;
 	}
 	input::-webkit-outer-spin-button,
 	input::-webkit-inner-spin-button {

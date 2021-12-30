@@ -803,7 +803,7 @@ var app = (function () {
          */
         indexOf(x) {
             const i = Math.round((x-this.min)/this.span);
-            if(i >= 0 && i < this.length && Math.abs((this[i]-x)/this[i]) < this.span*0.05) return i;
+            if(i >= 0 && i < this.length && Math.abs(this[i]-x) < this.span*0.05) return i;
             else return -1;
         }
         /**
@@ -814,6 +814,7 @@ var app = (function () {
          */
         includes(x) {return this.indexOf(x) !== -1}
     }
+    if(typeof window !== "undefined") Object.defineProperty(window, "LinearSpace", {value: LinearSpace});
 
 
     // function LinearSpace2(min, max, points) {
@@ -831,6 +832,9 @@ var app = (function () {
     //     else return -1;
     // }
     // LinearSpace2.prototype.includes = function(x) { return this.indexOf(x) !== -1 }
+
+    const eV2Ry = 0.0734986176;
+    const A2au = 1.8897259886;
 
     class Complex {
         constructor(real=0, imag=0) {
@@ -997,9 +1001,9 @@ var app = (function () {
             return this;
         }
         toReciprocal() {
-            var m2 = this.real*this.real + this.imag*this.imag;
-            this.real /= m2;
-            this.imag = -this.imag/m2;
+            let r = this.real;
+            this.real = 1/(r + this.imag/r*this.imag);
+            this.imag = -1/(this.imag + r/this.imag*r);
             return this;
         }
         toOpposite() {
@@ -1174,6 +1178,7 @@ var app = (function () {
     }
 
     /**
+     * Computes the transmission coefficient (when E != V0)
      * @param {number} E energy [Ry]
      * @param {number} V0 potential [Ry]
      * @param {number} l barrier width [a.u.]
@@ -1183,11 +1188,11 @@ var app = (function () {
     function transmission(E, V0, l, m) {
         k.becomes(-m*E,0).pow_r(.5);     // k^2 = -E 2m/h^2 
         b.becomes(m*(V0-E),0).pow_r(.5);   // beta^2 = (V0-E) 2m/h^2
-        return compute(l);
+        return compute(l) || 0;
     }
 
     /**
-     * Computesth transmission coefficient when the energy equals the potential
+     * Computes the transmission coefficient when the energy equals the potential
      * @param {number} E energy or potential [Ry]
      * @param {number} l barrier width [a.u.]
      * @param {number} m particle mass [electrom masses]
@@ -1212,7 +1217,7 @@ var app = (function () {
         M[3].d.eq(M[3].b).mul(k).toOpposite();
 
         M[0].toInverse().mul_right(M[1]).mul_right(M[3]);
-        return 1/M[3].a.squareModulus;
+        return 1/M[0].a.squareModulus;
     }
 
     function randomColor() {
@@ -1942,7 +1947,7 @@ var app = (function () {
     	return child_ctx;
     }
 
-    // (121:1) {#if mode !== 0}
+    // (122:1) {#if mode !== 0}
     function create_if_block_5(ctx) {
     	let h3;
     	let t1;
@@ -1960,12 +1965,12 @@ var app = (function () {
     			input = element("input");
     			t2 = space();
     			t3 = text(/*global_length*/ ctx[2]);
-    			attr(h3, "class", "svelte-pikyfx");
+    			attr(h3, "class", "svelte-1dtuwej");
     			attr(input, "type", "range");
     			attr(input, "min", "0.025");
     			attr(input, "max", "10");
     			attr(input, "step", "0.025");
-    			attr(input, "class", "svelte-pikyfx");
+    			attr(input, "class", "svelte-1dtuwej");
     		},
     		m(target, anchor) {
     			insert(target, h3, anchor);
@@ -2003,7 +2008,7 @@ var app = (function () {
     	};
     }
 
-    // (126:1) {#if mode !== 1}
+    // (127:1) {#if mode !== 1}
     function create_if_block_4(ctx) {
     	let h3;
     	let t1;
@@ -2021,12 +2026,12 @@ var app = (function () {
     			input = element("input");
     			t2 = space();
     			t3 = text(/*global_potential*/ ctx[3]);
-    			attr(h3, "class", "svelte-pikyfx");
+    			attr(h3, "class", "svelte-1dtuwej");
     			attr(input, "type", "range");
     			attr(input, "min", "0.05");
     			attr(input, "max", "20");
     			attr(input, "step", "0.05");
-    			attr(input, "class", "svelte-pikyfx");
+    			attr(input, "class", "svelte-1dtuwej");
     		},
     		m(target, anchor) {
     			insert(target, h3, anchor);
@@ -2064,10 +2069,10 @@ var app = (function () {
     	};
     }
 
-    // (131:1) {#if mode !== 2}
+    // (132:1) {#if mode !== 2}
     function create_if_block_3(ctx) {
     	let h3;
-    	let t3;
+    	let t1;
     	let select;
     	let option0;
     	let option0_value_value;
@@ -2083,14 +2088,16 @@ var app = (function () {
     	let option5_value_value;
     	let option6;
     	let option6_value_value;
+    	let option7;
+    	let option7_value_value;
     	let mounted;
     	let dispose;
 
     	return {
     		c() {
     			h3 = element("h3");
-    			h3.innerHTML = `Particle mass [m<sub>e</sub>]`;
-    			t3 = space();
+    			h3.textContent = "Particle mass";
+    			t1 = space();
     			select = element("select");
     			option0 = element("option");
     			option0.textContent = "electron neutrino";
@@ -2103,10 +2110,12 @@ var app = (function () {
     			option4 = element("option");
     			option4.textContent = "quark down";
     			option5 = element("option");
-    			option5.textContent = "tau netrino";
+    			option5.textContent = "tau neutrino";
     			option6 = element("option");
     			option6.textContent = "muon";
-    			attr(h3, "class", "svelte-pikyfx");
+    			option7 = element("option");
+    			option7.textContent = "proton";
+    			attr(h3, "class", "svelte-1dtuwej");
     			option0.__value = option0_value_value = 1.957e-3;
     			option0.value = option0.__value;
     			option1.__value = option1_value_value = 0.3326;
@@ -2121,12 +2130,14 @@ var app = (function () {
     			option5.value = option5.__value;
     			option6.__value = option6_value_value = 206.77;
     			option6.value = option6.__value;
-    			attr(select, "class", "svelte-pikyfx");
+    			option7.__value = option7_value_value = 1836.1;
+    			option7.value = option7.__value;
+    			attr(select, "class", "svelte-1dtuwej");
     			if (/*global_mass*/ ctx[4] === void 0) add_render_callback(() => /*select_change_handler_1*/ ctx[17].call(select));
     		},
     		m(target, anchor) {
     			insert(target, h3, anchor);
-    			insert(target, t3, anchor);
+    			insert(target, t1, anchor);
     			insert(target, select, anchor);
     			append(select, option0);
     			append(select, option1);
@@ -2135,6 +2146,7 @@ var app = (function () {
     			append(select, option4);
     			append(select, option5);
     			append(select, option6);
+    			append(select, option7);
     			select_option(select, /*global_mass*/ ctx[4]);
 
     			if (!mounted) {
@@ -2149,7 +2161,7 @@ var app = (function () {
     		},
     		d(detaching) {
     			if (detaching) detach(h3);
-    			if (detaching) detach(t3);
+    			if (detaching) detach(t1);
     			if (detaching) detach(select);
     			mounted = false;
     			dispose();
@@ -2157,7 +2169,7 @@ var app = (function () {
     	};
     }
 
-    // (144:82) {:else}
+    // (146:82) {:else}
     function create_else_block(ctx) {
     	let t0;
     	let sub;
@@ -2183,7 +2195,7 @@ var app = (function () {
     	};
     }
 
-    // (144:67) 
+    // (146:67) 
     function create_if_block_2(ctx) {
     	let t;
 
@@ -2200,7 +2212,7 @@ var app = (function () {
     	};
     }
 
-    // (144:5) {#if mode === 0}
+    // (146:5) {#if mode === 0}
     function create_if_block_1(ctx) {
     	let t;
 
@@ -2217,7 +2229,7 @@ var app = (function () {
     	};
     }
 
-    // (148:2) {#each graphs as g, i}
+    // (150:2) {#each graphs as g, i}
     function create_each_block_1(ctx) {
     	let div;
     	let input;
@@ -2248,11 +2260,11 @@ var app = (function () {
     			button = element("button");
     			t3 = space();
     			attr(input, "type", "color");
-    			attr(input, "class", "svelte-pikyfx");
-    			attr(button, "class", "remove svelte-pikyfx");
+    			attr(input, "class", "svelte-1dtuwej");
+    			attr(button, "class", "remove svelte-1dtuwej");
     			attr(button, "data-index", button_data_index_value = /*i*/ ctx[28]);
     			attr(button, "title", "Remove graph");
-    			attr(div, "class", "graph-info svelte-pikyfx");
+    			attr(div, "class", "graph-info svelte-1dtuwej");
     		},
     		m(target, anchor) {
     			insert(target, div, anchor);
@@ -2300,7 +2312,7 @@ var app = (function () {
     	};
     }
 
-    // (159:1) {#if mode != 1 && global_potential > minE && global_potential < maxE}
+    // (161:1) {#if mode != 1 && global_potential > minE && global_potential < maxE}
     function create_if_block(ctx) {
     	let dataplot;
     	let current;
@@ -2354,7 +2366,7 @@ var app = (function () {
     	};
     }
 
-    // (162:1) {#each graphs as g}
+    // (164:1) {#each graphs as g}
     function create_each_block(ctx) {
     	let dataplot;
     	let current;
@@ -2397,7 +2409,7 @@ var app = (function () {
     	};
     }
 
-    // (158:0) <Axis min_x={minE} max_x={maxE} min_y={0} max_y={1}>
+    // (160:0) <Axis min_x={minE} max_x={maxE} min_y={0} max_y={1}>
     function create_default_slot(ctx) {
     	let t;
     	let each_1_anchor;
@@ -2632,37 +2644,37 @@ var app = (function () {
 
     			t20 = space();
     			create_component(axis.$$.fragment);
-    			attr(h30, "class", "svelte-pikyfx");
+    			attr(h30, "class", "svelte-1dtuwej");
     			attr(label0, "for", "#minE");
     			attr(input0, "type", "number");
     			attr(input0, "id", "minE");
     			attr(input0, "min", "0");
     			input0.value = "0";
     			attr(input0, "max", input0_max_value = /*maxE*/ ctx[1] - .01);
-    			attr(input0, "class", "svelte-pikyfx");
+    			attr(input0, "class", "svelte-1dtuwej");
     			attr(label1, "for", "#maxE");
     			attr(input1, "type", "number");
     			attr(input1, "id", "maxE");
     			attr(input1, "min", input1_min_value = /*minE*/ ctx[0] + .01);
     			input1.value = "15";
-    			attr(input1, "class", "svelte-pikyfx");
-    			attr(div0, "class", "grid2by2 svelte-pikyfx");
-    			attr(h31, "class", "svelte-pikyfx");
+    			attr(input1, "class", "svelte-1dtuwej");
+    			attr(div0, "class", "grid2by2 svelte-1dtuwej");
+    			attr(h31, "class", "svelte-1dtuwej");
     			option0.__value = 0;
     			option0.value = option0.__value;
     			option1.__value = 1;
     			option1.value = option1.__value;
     			option2.__value = 2;
     			option2.value = option2.__value;
-    			attr(select, "class", "svelte-pikyfx");
+    			attr(select, "class", "svelte-1dtuwej");
     			if (/*mode*/ ctx[5] === void 0) add_render_callback(() => /*select_change_handler*/ ctx[14].call(select));
-    			attr(h32, "class", "svelte-pikyfx");
+    			attr(h32, "class", "svelte-1dtuwej");
     			attr(input2, "type", "number");
     			attr(input2, "min", "0");
-    			attr(input2, "class", "svelte-pikyfx");
-    			attr(button, "class", "add svelte-pikyfx");
-    			attr(div1, "class", "legends svelte-pikyfx");
-    			attr(div2, "class", "inputs svelte-pikyfx");
+    			attr(input2, "class", "svelte-1dtuwej");
+    			attr(button, "class", "add svelte-1dtuwej");
+    			attr(div1, "class", "legends svelte-1dtuwej");
+    			attr(div2, "class", "inputs svelte-1dtuwej");
     		},
     		m(target, anchor) {
     			insert(target, div2, anchor);
@@ -2907,12 +2919,12 @@ var app = (function () {
     		var i = 0;
 
     		if (pot_index !== -1) {
-    			for (; i < pot_index; i++) arr[i] = transmission(xs[i], pot, length, mass);
-    			arr[pot_index] = transmission_pot(pot, length, mass);
+    			for (; i < pot_index; i++) arr[i] = transmission(xs[i] * eV2Ry, pot * eV2Ry, length * A2au, mass);
+    			arr[pot_index] = transmission_pot(pot * eV2Ry, length * A2au, mass);
     			i = pot_index + 1;
     		}
 
-    		for (; i < 500; i++) arr[i] = transmission(xs[i], pot, length, mass);
+    		for (; i < 500; i++) arr[i] = transmission(xs[i] * eV2Ry, pot * eV2Ry, length * A2au, mass);
     		return arr;
     	}
 

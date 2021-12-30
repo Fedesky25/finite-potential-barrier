@@ -41,6 +41,7 @@ function compute(l) {
 }
 
 /**
+ * Computes the transmission coefficient (when E != V0)
  * @param {number} E energy [Ry]
  * @param {number} V0 potential [Ry]
  * @param {number} l barrier width [a.u.]
@@ -50,11 +51,11 @@ function compute(l) {
 export function transmission(E, V0, l, m) {
     k.becomes(-m*E,0).pow_r(.5);     // k^2 = -E 2m/h^2 
     b.becomes(m*(V0-E),0).pow_r(.5);   // beta^2 = (V0-E) 2m/h^2
-    return compute(l);
+    return compute(l) || 0;
 }
 
 /**
- * Computesth transmission coefficient when the energy equals the potential
+ * Computes the transmission coefficient when the energy equals the potential
  * @param {number} E energy or potential [Ry]
  * @param {number} l barrier width [a.u.]
  * @param {number} m particle mass [electrom masses]
@@ -79,7 +80,7 @@ export function transmission_pot(E, l, m) {
     M[3].d.eq(M[3].b).mul(k).toOpposite();
 
     M[0].toInverse().mul_right(M[1]).mul_right(M[3]);
-    return 1/M[3].a.squareModulus;
+    return 1/M[0].a.squareModulus;
 }
 
 

@@ -163,9 +163,9 @@ export default class Complex {
         return this;
     }
     toReciprocal() {
-        var m2 = this.real*this.real + this.imag*this.imag;
-        this.real /= m2;
-        this.imag = -this.imag/m2;
+        let r = this.real;
+        this.real = 1/(r + this.imag/r*this.imag);
+        this.imag = -1/(this.imag + r/this.imag*r);
         return this;
     }
     toOpposite() {
