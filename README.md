@@ -14,7 +14,7 @@ The files of major interest regarding the computation are found in [utils folder
     - `transmission(E,V0,l,m)` computes T when energy `E` and potential `V0` (both in measure in Rydberg) are different; `l` and `m` are, respectively, the barrier length in Angstrom and the particle mass as multiple of electrom masses.
     - `transmission_pot(E,l,m)` computes T when energy and potential are the same.
 
-The [public](public/) folder contains the release static files of the web page hosted [here](https://federicogulielmi.it/wave-transmission-coefficient).
+The [public](public/) folder contains the release static files of the web page hosted [here](https://federicoguglielmi.it/wave-transmission-coefficient).
 
 
 # From math to code
@@ -69,4 +69,8 @@ for(; i < potential_index; i++) y[i] = transmission(x[i], V0, l, m);
 
 // all T values associated to the x values are now in y
 ```
+
+## Overflow and underflow cases
+
+When the values of barrier length and mass are high (for expample a proton, which has ~1836 electron masses, with barrier length 10A and potential 11eV), some matrices' components that depends exponentially on them become very high or very low (order of 10^200 or 10^-200): in these cases, further calculation such as matrix inversion lead to over- or under- flow, which in turns means that in edge cases the graph in the [web page](https://federicoguglielmi.it/wave-transmission-coefficient) will not render.
 
