@@ -51,7 +51,7 @@ function compute(l) {
 export function transmission(E, V0, l, m) {
     k.becomes(-m*E,0).pow_r(.5);     // k^2 = -E 2m/h^2 
     b.becomes(m*(V0-E),0).pow_r(.5);   // beta^2 = (V0-E) 2m/h^2
-    return compute(l) || 0;
+    return compute(l);
 }
 
 /**
@@ -81,57 +81,6 @@ export function transmission_pot(E, l, m) {
 
     M[0].toInverse().mul_right(M[1]).mul_right(M[3]);
     return 1/M[0].a.squareModulus;
-}
-
-
-/**
- * 
- * @param {number[]} E 
- * @param {number} V0 
- * @param {number[]} l 
- */
-export function table_E_l(E, V0, l) {
-    var i;
-    var j;
-    const LEN_E = E.length;
-    const LEN_l = l.length;
-    const res = new Array(LEN_E);
-    for(i=0; i<LEN_E; i++) {
-        k.becomes(-E[i],0).pow_r(.5);
-        if(Math.abs(V0-E[i]) < 2*Number.EPSILON) {
-            console.log(E[i]);
-            const s = 1/k.mul_r(l).intoExp().squareModulus;
-            for(j=0; j<LEN_l; j++) res[i][j] = s;
-        } else {
-            b.becomes(V0-E[i],0).pow_r(.5);
-            res[i] = new Array(LEN_l);
-            for(j=0; j<LEN_l; j++) res[i][j] = compute(l[j]);
-        }
-    }
-    return res;
-}
-
-/**
- * Computes a table of array of the trasmission
- * coeffienciente of an array of lengths
- * @param {number[]} E energy values [Ry]
- * @param {number} V0 barrier potential [Ry]
- * @param {number[]} l barrier lengths [a.u.]
- * @returns {number[][]}
- */
-export function table_l_E(E, V0, l) {
-    var i;
-    var j;
-    const LEN_E = E.length;
-    const LEN_l = l.length;
-    const res = new Array(LEN_l);
-    for(i=0; i<LEN_l; i++) res[i] = [];
-    for(i=0; i<LEN_E; i++) {
-        k.becomes(-E[i],0).pow_r(.5);
-        b.becomes(V0-E[i],0).pow_r(.5);
-        for(j=0; j<LEN_l; j++) res[j].push(compute(l[j]));
-    }
-    return res;
 }
 
 

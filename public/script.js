@@ -792,7 +792,7 @@ var app = (function () {
             this.span = (max-min)/(points-1);
             for(var i=0; i<points; i++) this[i] = this.span*i + min;
             if(excludeMin) this[0] += this.span*0.05;
-            if(excludeMax) this[points-1];
+            if(excludeMax) this[points-1] -= this.span*0.05;
         }
         /**
          * Returns the index of the occurrence of a value in a linear space, or -1 if it is not present. \
@@ -1188,7 +1188,7 @@ var app = (function () {
     function transmission(E, V0, l, m) {
         k.becomes(-m*E,0).pow_r(.5);     // k^2 = -E 2m/h^2 
         b.becomes(m*(V0-E),0).pow_r(.5);   // beta^2 = (V0-E) 2m/h^2
-        return compute(l) || 0;
+        return compute(l);
     }
 
     /**
