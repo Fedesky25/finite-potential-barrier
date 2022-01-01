@@ -1,37 +1,34 @@
 import { transmission, transmission_pot } from './utils/transmission.js';
+import { eV2Ry, A2au } from "./utils/convert.js";
 import { LinearSpace } from './utils/linear.js';
-import { writeFileSync } from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 
 /**
- * @param {number} maxE [eV]
- * @param {number} v0 [eV]
- * @param {number[]} lengths [A]
- * @param {number} points 
+ * Asserts a condition. If not met, a message is displayed and the process exits.
+ * @param {boolean} flag condition to be met 
+ * @param {string} msg error message
  * @returns 
  */
-function generate(maxE, v0, lengths, points) {
-    var i;
-    maxE *= 0.0734986176;
-    v0 *= 0.0734986176;
-
-    const data = table(0, maxE, points, v0, lengths.map(l => l*0.529177249));
-
-    return "E\t" + lengths.map(l => 'l@'+l.toPrecision(4)).join('\t') + '\n'
-    + data.map(v => {
-        v[0] *= 13.605698066;
-        for(var i=0; i<v.length; i++) v[i].toPrecision(6);
-        return v.join('\t');
-    }).join('\n');
-
-    // const E = []
-    // for(i=0; i<points; i++) E.push(maxE*(i+1)/points);
-    // const table = table_E_l(E, v0, lengths);
-    // return "E\t" + lengths.map((_, i) => `l_${i}`).join('\t') + '\n' 
-    // + table.map((l,i) => `${(E[i]*13.605698066).toPrecision(6)}\t${arrToString(l)}`).join('\n');
+function assert(flag, msg) {
+    if(flag) return;
+    console.warn(msg);
+    process.exit(1);
 }
 
+/** @param {{min?: number, max: number, points?: number}} e */
+function checkEnergies(e) {
+    assert(typeof e === "object", "Energies must be an object with at least the maximum specified");
+    assert(typeof e.max === "number" && e.max > 0, "Enegies maximum must be a positive number")
+    if(e.min) assert(typeof e.min === "number" && e.min >= 0 && e.min < e.max, "Energies minimum must be a positive number less than the maximum");
+    else e.min = 0;
+    if(e.points) assert(typeof e.points === "number" && e.points > 2, "Energies points taken must be more than 2");
+    else e.points = 500;
+    return e;
+}
 
-function getMass(s) {
+function parseMass(s) {
+    if(typeof s === "number") return s;
+    if(typeof s !== "string") return 1;
     switch (s) {
         case "v_e":
         case "electron-neutrino":
@@ -62,39 +59,44 @@ function getMass(s) {
     }
 }
 
+const filename = process.argv[2];
+assert(filename, "A file name must be provided");
 
-// node main --energy 0 15 500 --
+const opt = JSON.parse(readFileSync(`./data/${filename}.json`, {encoding: "utf-8"}));
+assert(typeof opt === "object", "Options must be and object");
 
+const e_opt = checkEnergies(opt.energies);
+const energies = new LinearSpace(e_opt.min, e_opt.max, e_opt.points, e_opt.min == 0);
+const LEN = energies.length;
 
-const argv = process.argv.slice(2);
+assert(Array.isArray(opt.plots), "Plots field must be an array");
 
+var i;
+var j;
+var pot;
+var pot_i;
+var length;
+var mass;
 
+const rows = energies.map(e => e.toPrecision(6));
+const P = opt.plots.length;
 
-const opts = { maxE: 15, v0: 5, l: [1,2,3,4], points: 100, file: 'data' }
-for(var i=0; i<argv.length; i++) {
-    switch (argv[i]) {
-        case "--max-E":
-            opts.maxE = +argv[++i] || 15;
-            break;
-        case "--v0":
-            opts.v0 = +argv[++i] || 5; 
-            break;
-        case "--points":
-            opts.points = +argv[++i] || 100;
-            break;
-        case "--l":
-        {
-            let l; 
-            opts.l = [];
-            while(Number.isNaN(l=+argv[++i])) opts.l.push(l);
-            break;   
-        }
-        default:
-            console.log(`${argv[i]} is not a recognized argument`);
-            break;
+for(j=0; j<P; j++) {
+    pot = opt.plots[j].potential * eV2Ry;
+    length = opt.plots[j].length * A2au;
+    mass = parseMass(opt.plots[j].mass);
+    pot_i = energies.indexOf(pot);
+
+    i=0;
+    if(pot_i !== -1) {
+        for(; i<pot_i; i++) rows[i] += '\t' + transmission(energies[i], pot, length, mass).toPrecision(6);
+        rows[pot_i] += '\t' + transmission_pot(pot, length, mass).toPrecision(6);
+        i = pot_i + 1;
     }
+    for(; i<LEN; i++) rows[i] += '\t' + transmission(energies[i], pot, length, mass).toPrecision(6);
 }
-writeFileSync(`./data/${opts.file}.dat`, generate(opts.maxE, opts.v0, opts.l, opts.points));
+
+writeFileSync(`./data/${filename}.dat`,"energy\t" + opt.plots.map(p => p.name).join('\t') + '\n' + rows.join('\n'));
 console.log('Done!');
 
 
