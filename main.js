@@ -1,8 +1,6 @@
-import { table } from './utils/transmission.js';
+import { transmission, transmission_pot } from './utils/transmission.js';
+import { LinearSpace } from './utils/linear.js';
 import { writeFileSync } from 'fs';
-
-/**@param {number[]} arr */
-function arrToString(arr) { return arr.map(v => v.toPrecision(10)).join('\t') }
 
 /**
  * @param {number} maxE [eV]
@@ -33,7 +31,45 @@ function generate(maxE, v0, lengths, points) {
 }
 
 
+function getMass(s) {
+    switch (s) {
+        case "v_e":
+        case "electron-neutrino":
+            return 1.957e-3;
+        case "v_m":
+        case "muon-neutrino":
+            return 0.3326;
+        case "e":
+        case "electron":
+            return 1;
+        case "u":
+        case "quark-up":
+            return 4.3053;
+        case "d":
+        case "quark-down":
+            return 9.1977;
+        case "v_t":
+        case "tau-neutrino":
+            return 35.616;
+        case "m":
+        case "muon":
+            return 206.77;
+        case "p":
+        case "proton":
+            return 1836.1; 
+        default:
+            return +s || 1;
+    }
+}
+
+
+// node main --energy 0 15 500 --
+
+
 const argv = process.argv.slice(2);
+
+
+
 const opts = { maxE: 15, v0: 5, l: [1,2,3,4], points: 100, file: 'data' }
 for(var i=0; i<argv.length; i++) {
     switch (argv[i]) {

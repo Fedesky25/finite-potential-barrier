@@ -1,3 +1,9 @@
 {
-    "liveServer.settings.wait": 1200
+    "liveServer.settings.wait": 1200,
+    "json.schemas": [
+        {
+            "fileMatch": ["/data/*.json"],
+            "url": "/data/schema.json"
+        }
+    ]
 }

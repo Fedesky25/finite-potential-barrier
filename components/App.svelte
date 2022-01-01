@@ -44,14 +44,16 @@
 	 */
 	function calculate(pot, length, mass, arr) {
 		if(!arr) arr = new Array(500);
-		const pot_index = xs.indexOf(pot);
+		pot *= eV2Ry;
+		length *= A2au;
 		var i = 0;
+		const pot_index = xs.indexOf(pot);
 		if(pot_index !== -1) {
-			for(; i<pot_index; i++) arr[i] = transmission(xs[i]*eV2Ry, pot*eV2Ry, length*A2au, mass);
-			arr[pot_index] = transmission_pot(pot*eV2Ry, length*A2au, mass);
+			for(; i<pot_index; i++) arr[i] = transmission(xs[i]*eV2Ry, pot, length, mass);
+			arr[pot_index] = transmission_pot(pot, length, mass);
 			i = pot_index+1;
 		}
-		for(; i<500; i++) arr[i] = transmission(xs[i]*eV2Ry, pot*eV2Ry, length*A2au, mass)
+		for(; i<500; i++) arr[i] = transmission(xs[i]*eV2Ry, pot, length, mass)
 		return arr;
 	}
 	const evaluators = [
