@@ -15,6 +15,7 @@ The files of major interest regarding the computation are found in [utils folder
     - `transmission_pot(E,l,m)` computes T when energy and potential are the same.
 
 The [public](public) folder contains the release static files of the web page hosted [here](https://federicoguglielmi.it/wave-transmission-coefficient).
+There is also Node script ([main.js](main.js)) which, starting from a json file in the [data folder](data) having structure defined in [data/schema.json](data/schema.json) and specifying plot characteristics, generates a .dat file having the same name with the values of energies and transmission coefficients in a table-like format. For example `node main lengths` will parse [data/lengths.json](data/lengths.json), compute the trasmission coefficients, and write the file [data/lengths.dat](data/lengths.dat).
 
 
 # From math to code

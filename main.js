@@ -66,7 +66,7 @@ const opt = JSON.parse(readFileSync(`./data/${filename}.json`, {encoding: "utf-8
 assert(typeof opt === "object", "Options must be and object");
 
 const e_opt = checkEnergies(opt.energies);
-const energies = new LinearSpace(e_opt.min, e_opt.max, e_opt.points, e_opt.min == 0);
+const energies = new LinearSpace(e_opt.min*eV2Ry, e_opt.max*eV2Ry, e_opt.points, e_opt.min == 0);
 const LEN = energies.length;
 
 assert(Array.isArray(opt.plots), "Plots field must be an array");
