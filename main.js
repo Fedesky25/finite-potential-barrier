@@ -1,5 +1,5 @@
 import { transmission, transmission_pot } from './utils/transmission.js';
-import { eV2Ry, A2au } from "./utils/convert.js";
+import { eV2Ry, A2au, Ry2eV } from "./utils/convert.js";
 import { LinearSpace } from './utils/linear.js';
 import { readFileSync, writeFileSync } from 'fs';
 
@@ -22,7 +22,7 @@ function checkEnergies(e) {
     if(e.min) assert(typeof e.min === "number" && e.min >= 0 && e.min < e.max, "Energies minimum must be a positive number less than the maximum");
     else e.min = 0;
     if(e.points) assert(typeof e.points === "number" && e.points > 2, "Energies points taken must be more than 2");
-    else e.points = 500;
+    else e.points = 250;
     return e;
 }
 
@@ -59,6 +59,30 @@ function parseMass(s) {
     }
 }
 
+/** 
+ * @param {{potential?: number, length?: number, mass?: number|string, 
+ * plots: {name: string, potential?: number, length?: number, mass?: number|string}[]}} o
+ */
+function parsePlots(o) {
+    const global_pot = o.potential
+    ? (assert(typeof o.potential === "number" && o.potential>0, "Global potential must be a positive number"), o.potential * eV2Ry)
+    : null;
+    const gloabl_l = o.length 
+    ? (assert(typeof o.length === "number" && o.length > 0, "Global barrier length must be a positive number"), o.length * A2au)
+    : null;
+    const global_m = o.mass ? parseMass(o.mass) : null;
+
+    assert(Array.isArray(o.plots) && o.plots.length > 0, "Plots must be a non-empty array");
+    return o.plots.map(p => {
+        const pot = global_pot && !p.potential ? global_pot 
+        : (assert(typeof p.potential === "number" && p.potential > 0, "Plot potential must be positive number"), p.potential*eV2Ry);
+        const l = gloabl_l && !p.length ? gloabl_l 
+        : (assert(typeof p.length === "number" && p.length > 0, "Plot barrier length must be positive number"), p.length*A2au);
+        const m = global_m && !p.mass ? global_m : parseMass(p.mass);
+        return { pot, l, m };
+    });
+}
+
 const filename = process.argv[2];
 assert(filename, "A file name must be provided");
 
@@ -69,31 +93,26 @@ const e_opt = checkEnergies(opt.energies);
 const energies = new LinearSpace(e_opt.min*eV2Ry, e_opt.max*eV2Ry, e_opt.points, e_opt.min == 0);
 const LEN = energies.length;
 
-assert(Array.isArray(opt.plots), "Plots field must be an array");
+const plts = parsePlots(opt);
+const P = plts.length;
 
 var i;
 var j;
-var pot;
+var plt;
 var pot_i;
-var length;
-var mass;
 
-const rows = energies.map(e => e.toPrecision(6));
-const P = opt.plots.length;
+const rows = energies.map(e => (e*Ry2eV).toPrecision(6));
 
 for(j=0; j<P; j++) {
-    pot = opt.plots[j].potential * eV2Ry;
-    length = opt.plots[j].length * A2au;
-    mass = parseMass(opt.plots[j].mass);
-    pot_i = energies.indexOf(pot);
-
+    plt = plts[j];
+    pot_i = energies.indexOf(plt.pot);
     i=0;
     if(pot_i !== -1) {
-        for(; i<pot_i; i++) rows[i] += '\t' + transmission(energies[i], pot, length, mass).toPrecision(6);
-        rows[pot_i] += '\t' + transmission_pot(pot, length, mass).toPrecision(6);
+        for(; i<pot_i; i++) rows[i] += '\t' + transmission(energies[j], plt.pot, plt.l, plt.m).toPrecision(6);
+        rows[pot_i] += '\t' + transmission_pot(plt.pot, plt.l, plt.m).toPrecision(6);
         i = pot_i + 1;
     }
-    for(; i<LEN; i++) rows[i] += '\t' + transmission(energies[i], pot, length, mass).toPrecision(6);
+    for(; i<LEN; i++) rows[i] += '\t' + transmission(energies[i], plt.pot, plt.l, plt.m).toPrecision(6);
 }
 
 writeFileSync(`./data/${filename}.dat`,"energy\t" + opt.plots.map(p => p.name).join('\t') + '\n' + rows.join('\n'));

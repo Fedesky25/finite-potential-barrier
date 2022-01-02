@@ -1,0 +1,25 @@
+{
+    "energies": {
+        "max": 15
+    },
+    "potential": 5,
+    "length": 0.2,
+    "plots": [
+        {
+            "name": "electron",
+            "mass": "e"
+        },
+        {
+            "name": "tau-neutrino",
+            "mass": "v_t"
+        },
+        {
+            "name": "muon",
+            "mass": "m"
+        },
+        {
+            "name": "proton",
+            "mass": "p"
+        }
+    ]
+}

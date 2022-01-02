@@ -1,24 +1,21 @@
 {
     "energies": {
         "min": 0,
-        "max": 15,
-        "points": 500
+        "max": 15
     },
+    "potential": 5,
     "plots": [
         {
-            "name": "p2",
-            "length": 0.4,
-            "potential": 5
+            "name": "short",
+            "length": 0.4
         },
         {
-            "name": "p2",
-            "length": 1,
-            "potential": 5
+            "name": "medium",
+            "length": 1
         },
         {
-            "name": "p3",
-            "length": 3,
-            "potential": 5
+            "name": "long",
+            "length": 3
         }
     ]
 }
