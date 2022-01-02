@@ -134,12 +134,12 @@
 	{#if mode !== 2}
 		<h3>Particle mass</h3>
 		<select bind:value={global_mass}>
-			<option value={1.957e-3}>electron neutrino</option>
-			<option value={0.3326}>muon neutrino</option>
+			<option value={2e-3}>electron neutrino</option>
+			<option value={0.33}>muon neutrino</option>
 			<option value={1}>electron</option>
-			<option value={4.3053}>quark up</option>
-			<option value={9.1977}>quark down</option>
-			<option value={35.616}>tau neutrino</option>
+			<option value={3.9}>quark up</option>
+			<option value={9.4}>quark down</option>
+			<option value={35.6}>tau neutrino</option>
 			<option value={206.77}>muon</option>
 			<option value={1836.1}>proton</option>
 		</select>

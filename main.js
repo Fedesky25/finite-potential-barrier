@@ -32,22 +32,22 @@ function parseMass(s) {
     switch (s) {
         case "v_e":
         case "electron-neutrino":
-            return 1.957e-3;
+            return 2e-3;
         case "v_m":
         case "muon-neutrino":
-            return 0.3326;
+            return 0.33;
         case "e":
         case "electron":
             return 1;
         case "u":
         case "quark-up":
-            return 4.3053;
+            return 3.9;
         case "d":
         case "quark-down":
-            return 9.1977;
+            return 9.4;
         case "v_t":
         case "tau-neutrino":
-            return 35.616;
+            return 35.6;
         case "m":
         case "muon":
             return 206.77;
