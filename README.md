@@ -15,12 +15,10 @@ The files of major interest regarding the computation are found in [utils folder
     - `transmission_pot(E,l,m)` computes T when energy and potential are the same.
 
 The [public](public) folder contains the release static files of the web page hosted [here](https://federicoguglielmi.it/wave-transmission-coefficient).
-There is also Node script ([main.js](main.js)) which, starting from a json file in the [data folder](data) having structure defined in [data/schema.json](data/schema.json) and specifying plot characteristics, generates a .dat file having the same name with the values of energies and transmission coefficients in a table-like format. For example `node main lengths` will parse [data/lengths.json](data/lengths.json), compute the trasmission coefficients, and write the file [data/lengths.dat](data/lengths.dat).
+There is also Node script ([main.js](main.js)) which, starting from a json file in the [data folder](data) having structure defined in [schema.json](schema.json) and specifying plot characteristics, generates a .dat file having the same name with the values of energies and transmission coefficients in a table-like format. For example `node main lengths` will parse [data/lengths.json](data/lengths.json), compute the trasmission coefficients, and write the file [data/lengths.dat](data/lengths.dat).
 
 
-# From math to code
-
-In order to minimize (relatively expensive) memory allocation during computation, all the objects used inside `transmission` and `transmission_pot` are declared globally. After this passage, it is possible to define the two function body.
+# Code explanation
 
 ## Fundamental `Complex` and `Matrix2x2` use
 
@@ -28,25 +26,35 @@ Both classes have chainable methods to express on one line multiple steps. For e
 ```javascript
 k.becomes(-m*E, 0).pow_r(.5);
 ``` 
-Which translates to the math passages: k = -mE and  k = sqrt(k). The method `pow_r` elevates the complex number to a **r**eal **pow**er: by running some test `pow_r(.5)` turned out to be surprisingly more performant than a `intoSqrt()` method which resorts only to `Math.sqrt`.
+Which translates to the math passages: k = -mE and  k = sqrt(k). The method `pow_r` elevates the complex number to a **r**eal **pow**er: by running some test `pow_r(.5)` turned out to be surprisingly more performant than a `intoSqrt()` method which resorted only to `Math.sqrt`.
 
 Matrix assignement are more cumbersome, but the base principle is that each `Matrix2x2` instance has four complex propeties (`a b c d`) which represent the for components of a 2 by 2 matrix. By treating them exactly as `Complex` instances, it is possible to assign values to the matrices; for example:
 ```javascript
-M = new Matrix2x2();
+const M = new Matrix2x2();
 M.a.eq(k).mul_r(l).intoExp();
-M.b.eq(M[3].a).toReciprocal();
-M.c.eq(M[3].a).mul(k);
-M.d.eq(M[3].b).mul(k).toOpposite();
+M.b.eq(M.a).toReciprocal();
+M.c.eq(M.a).mul(k);
+M.d.eq(M.b).mul(k).toOpposite();
 ```
 In math language, translates into the matrix:
 
 ![Matrix definition](img/matrix.svg)
 
-Once all matrices needed for the computation are assigned their values, they are multiplied (with assignement, like a `*=` operator) to obtain a final matrix, which has as `a` component the complex value whose reciprocal of square modulus is the transmission coefficient.
+## Transmission function
+
+In order to minimize (relatively expensive) memory allocation during computation, all the objects used inside `transmission` (and `transmission_pot`) are declared globally. In the function body, after calculating k and beta, values are assigned to all needed matrices, they are multiplied (with assignement, like a `*=` operator), and the `a` component of the resulting matrix is used to find the transmission coefficient.
 ```javascript
-M[0].toInverse().mul_right(M[1]).mul_right(M[2].toInverse()).mul_right(M[3]);
-// M[0].toInverse().mul_right(M[1]).mul_right(M[3]); // in case of equal energy and potential
-return 1 / M[0].a.squareModulus;
+const M = [new Matrix2x2(). new Matrix2x2(), new Matrix2x2(), new Matrix2x2()];
+
+function transmission(E, V0, l, m) {
+    k.becomes(-m*E, 0).pow_r(.5);
+    b.becomes(m*(V0-E), 0).pow_r(.5);
+
+    // matrix assignment code
+
+    M[0].toInverse().mul_right(M[1]).mul_right(M[2].toInverse()).mul_right(M[3]);
+    return 1 / M[0].a.squareModulus;
+}
 ```
 
 ## Graph values computation
