@@ -3,7 +3,7 @@
     "json.schemas": [
         {
             "fileMatch": ["/data/*.json"],
-            "url": "/data/schema.json"
+            "url": "/schema.json"
         }
     ]
 }

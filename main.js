@@ -108,7 +108,7 @@ for(j=0; j<P; j++) {
     pot_i = energies.indexOf(plt.pot);
     i=0;
     if(pot_i !== -1) {
-        for(; i<pot_i; i++) rows[i] += '\t' + transmission(energies[j], plt.pot, plt.l, plt.m).toPrecision(6);
+        for(; i<pot_i; i++) rows[i] += '\t' + transmission(energies[i], plt.pot, plt.l, plt.m).toPrecision(6);
         rows[pot_i] += '\t' + transmission_pot(plt.pot, plt.l, plt.m).toPrecision(6);
         i = pot_i + 1;
     }
