@@ -1947,7 +1947,7 @@ var app = (function () {
     	return child_ctx;
     }
 
-    // (122:1) {#if mode !== 0}
+    // (124:1) {#if mode !== 0}
     function create_if_block_5(ctx) {
     	let h3;
     	let t1;
@@ -2008,7 +2008,7 @@ var app = (function () {
     	};
     }
 
-    // (127:1) {#if mode !== 1}
+    // (129:1) {#if mode !== 1}
     function create_if_block_4(ctx) {
     	let h3;
     	let t1;
@@ -2069,7 +2069,7 @@ var app = (function () {
     	};
     }
 
-    // (132:1) {#if mode !== 2}
+    // (134:1) {#if mode !== 2}
     function create_if_block_3(ctx) {
     	let h3;
     	let t1;
@@ -2116,17 +2116,17 @@ var app = (function () {
     			option7 = element("option");
     			option7.textContent = "proton";
     			attr(h3, "class", "svelte-1dtuwej");
-    			option0.__value = option0_value_value = 1.957e-3;
+    			option0.__value = option0_value_value = 2e-3;
     			option0.value = option0.__value;
-    			option1.__value = option1_value_value = 0.3326;
+    			option1.__value = option1_value_value = 0.33;
     			option1.value = option1.__value;
     			option2.__value = option2_value_value = 1;
     			option2.value = option2.__value;
-    			option3.__value = option3_value_value = 4.3053;
+    			option3.__value = option3_value_value = 3.9;
     			option3.value = option3.__value;
-    			option4.__value = option4_value_value = 9.1977;
+    			option4.__value = option4_value_value = 9.4;
     			option4.value = option4.__value;
-    			option5.__value = option5_value_value = 35.616;
+    			option5.__value = option5_value_value = 35.6;
     			option5.value = option5.__value;
     			option6.__value = option6_value_value = 206.77;
     			option6.value = option6.__value;
@@ -2169,7 +2169,7 @@ var app = (function () {
     	};
     }
 
-    // (146:82) {:else}
+    // (148:82) {:else}
     function create_else_block(ctx) {
     	let t0;
     	let sub;
@@ -2195,7 +2195,7 @@ var app = (function () {
     	};
     }
 
-    // (146:67) 
+    // (148:67) 
     function create_if_block_2(ctx) {
     	let t;
 
@@ -2212,7 +2212,7 @@ var app = (function () {
     	};
     }
 
-    // (146:5) {#if mode === 0}
+    // (148:5) {#if mode === 0}
     function create_if_block_1(ctx) {
     	let t;
 
@@ -2229,7 +2229,7 @@ var app = (function () {
     	};
     }
 
-    // (150:2) {#each graphs as g, i}
+    // (152:2) {#each graphs as g, i}
     function create_each_block_1(ctx) {
     	let div;
     	let input;
@@ -2312,7 +2312,7 @@ var app = (function () {
     	};
     }
 
-    // (161:1) {#if mode != 1 && global_potential > minE && global_potential < maxE}
+    // (163:1) {#if mode != 1 && global_potential > minE && global_potential < maxE}
     function create_if_block(ctx) {
     	let dataplot;
     	let current;
@@ -2366,7 +2366,7 @@ var app = (function () {
     	};
     }
 
-    // (164:1) {#each graphs as g}
+    // (166:1) {#each graphs as g}
     function create_each_block(ctx) {
     	let dataplot;
     	let current;
@@ -2409,7 +2409,7 @@ var app = (function () {
     	};
     }
 
-    // (160:0) <Axis min_x={minE} max_x={maxE} min_y={0} max_y={1}>
+    // (162:0) <Axis min_x={minE} max_x={maxE} min_y={0} max_y={1}>
     function create_default_slot(ctx) {
     	let t;
     	let each_1_anchor;
@@ -2915,16 +2915,18 @@ var app = (function () {
      */
     	function calculate(pot, length, mass, arr) {
     		if (!arr) arr = new Array(500);
-    		const pot_index = xs.indexOf(pot);
+    		pot *= eV2Ry;
+    		length *= A2au;
     		var i = 0;
+    		const pot_index = xs.indexOf(pot);
 
     		if (pot_index !== -1) {
-    			for (; i < pot_index; i++) arr[i] = transmission(xs[i] * eV2Ry, pot * eV2Ry, length * A2au, mass);
-    			arr[pot_index] = transmission_pot(pot * eV2Ry, length * A2au, mass);
+    			for (; i < pot_index; i++) arr[i] = transmission(xs[i] * eV2Ry, pot, length, mass);
+    			arr[pot_index] = transmission_pot(pot, length, mass);
     			i = pot_index + 1;
     		}
 
-    		for (; i < 500; i++) arr[i] = transmission(xs[i] * eV2Ry, pot * eV2Ry, length * A2au, mass);
+    		for (; i < 500; i++) arr[i] = transmission(xs[i] * eV2Ry, pot, length, mass);
     		return arr;
     	}
 
