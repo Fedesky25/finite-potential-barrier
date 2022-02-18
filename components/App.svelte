@@ -114,11 +114,11 @@
 		<input type="number" id="maxE" min={minE+.01} value="15" use:forceBounds on:safe-change={e => maxE = e.detail}>
 	</div>
 
-	<h3>Fixed data selection</h3>
+	<h3>Mode selection</h3>
 	<select bind:value={mode}>
-		<option value={0}>Potential and mass</option>
-		<option value={1}>Barrier width and mass</option>
-		<option value={2}>Barrier width and potential</option>
+		<option value={0}>Multiple barrier widths</option>
+		<option value={1}>Multiple barrier potentials</option>
+		<option value={2}>Multiple particle masses</option>
 	</select>
 
 	{#if mode !== 0}
@@ -134,14 +134,18 @@
 	{#if mode !== 2}
 		<h3>Particle mass</h3>
 		<select bind:value={global_mass}>
-			<option value={2e-3}>electron neutrino</option>
-			<option value={0.33}>muon neutrino</option>
-			<option value={1}>electron</option>
-			<option value={3.9}>quark up</option>
-			<option value={9.4}>quark down</option>
-			<option value={35.6}>tau neutrino</option>
-			<option value={206.77}>muon</option>
-			<option value={1836.1}>proton</option>
+			<optgroup label="Precise">
+				<option value={1}>electron</option>
+				<option value={206.77}>muon</option>
+				<option value={1836.1}>proton</option>
+			</optgroup>
+			<optgroup label="Upperbound">
+				<option value={2e-3}>electron neutrino</option>
+				<option value={0.33}>muon neutrino</option>
+				<option value={3.9}>quark up</option>
+				<option value={9.4}>quark down</option>
+				<option value={35.6}>tau neutrino</option>
+			</optgroup>
 		</select>
 	{/if}
 
@@ -170,6 +174,10 @@
 
 
 <style>
+	@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+	:global(*) {
+		font-family: "Poppins", sans-serif;
+	}
 	@media (min-width: 100ch) {
 		:global(body) {
 			display: grid;
@@ -181,6 +189,7 @@
 		padding: 1rem;
 	}
 	h3 {
+		font-weight: 600;
 		margin-bottom: 1rem;
 	}
 	h3:not(:first-of-type) {
@@ -198,6 +207,9 @@
 		padding: .25rem .5rem;
 		border-radius: .25em;
 		border: 2px solid #e1e1e1;
+	}
+	optgroup {
+		font-weight: 500;
 	}
 	input[type=range] {
 		vertical-align: middle;

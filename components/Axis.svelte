@@ -66,7 +66,7 @@
 <svelte:window on:resize={resize} />
 <div class="axis">
     {#each yTicks as tick}
-        <div class="y-tick" style="--t: {yScale(tick)}px;">{tick.toPrecision(3)}</div>
+        <div class="y-tick" style="--t: {yScale(tick)}px;">{tick.toFixed(2)}</div>
     {/each}
     {#each xTicks as tick}
         <div class="x-tick" style="--t: {xScale(tick)}px;">{tick.toPrecision(3)}</div>
@@ -96,8 +96,8 @@
 
         width: 100%;
         height: 100%;
-        max-width: 60em;
-        max-height: 35em;
+        max-width: 70em;
+        max-height: 40em;
     }
     .x-tick {
         color: #999;
