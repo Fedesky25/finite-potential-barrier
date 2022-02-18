@@ -7,11 +7,11 @@ Part of a Physics 2 assignement that involves the study of a wave function in 1D
 
 # To the reviewer
 The files of major interest regarding the computation are found in [utils folder](utils). In particular:
-- [Complex.js](utils/Complex.js) defines the class complex number with many methods to use them in calculation;
+- [Complex.js](utils/Complex.js) defines the class complex number with many useful methods for calculation;
 - [Matrix2x2.js](utils/Matrix2x2.js) defines the class for matrices of dimension 2 by 2 with complex entries;
-- [linear.js](utils/linear.js) defines (among other functions) the class `LinearScale` which constructs an array of equispaced points of a numeric interval, with method `indexOf(x)` of order O(1) that return the index of `x` inside the array (if present);
+- [linear.js](utils/linear.js) defines (among other functions) the class `LinearScale` which constructs an array of equispaced points of a numeric interval, with method `indexOf(x)` which return the index of `x` inside the array (if present) with order of complexity O(1);
 - [transmission.js](utils/transmission.js) defines the two functions used to compute the coefficient T:
-    - `transmission(E,V0,l,m)` computes T when energy `E` and potential `V0` (both in measure in Rydberg) are different; `l` and `m` are, respectively, the barrier length in Angstrom and the particle mass as multiple of electrom masses.
+    - `transmission(E,V0,l,m)` computes T when energy `E` and potential `V0` (both in Rydberg) are different; `l` and `m` are, respectively, the barrier length in Angstrom and the particle mass as multiple of electrom masses.
     - `transmission_pot(E,l,m)` computes T when energy and potential are the same.
 
 The [public](public) folder contains the release static files of the web page hosted [here](https://federicoguglielmi.it/wave-transmission-coefficient).
@@ -44,7 +44,7 @@ In math language, translates into the matrix:
 
 In order to minimize (relatively expensive) memory allocation during computation, all the objects used inside `transmission` (and `transmission_pot`) are declared globally. In the function body, after calculating k and beta, values are assigned to all needed matrices, they are multiplied (with assignement, like a `*=` operator), and the `a` component of the resulting matrix is used to find the transmission coefficient.
 ```javascript
-const M = [new Matrix2x2(). new Matrix2x2(), new Matrix2x2(), new Matrix2x2()];
+const M = [new Matrix2x2(), new Matrix2x2(), new Matrix2x2(), new Matrix2x2()];
 
 function transmission(E, V0, l, m) {
     k.becomes(-m*E, 0).pow_r(.5);
@@ -59,7 +59,7 @@ function transmission(E, V0, l, m) {
 
 ## Graph values computation
 
-To obtain a graph of T as a function of energy, we need to sample `transmission` on many `E` values belonging to an interval (the one visible in the viewbox, between `minE` and `maxE`), once the values of potential, barrier width and mass are fixed. To achieve that it is used a `LinearSpace` instance which divides an interval in equispaced values. Special caution must be taken when energy and potential are equal, since at this point another way of computing T must be used: luckily the method `indexOf` of `LinearSpace` returns the index of a specified value among the equispaced points (or -1 if not present) with complexity O(1) (leveraging that the array is ordered and his values have a fixed distance between them).
+To obtain a graph of T as a function of energy, we need to sample `transmission` on many `E` values belonging to an interval (the one visible in the viewbox, between `minE` and `maxE`), once the values of potential, barrier width and mass are fixed. To achieve that, a `LinearSpace` instance is used to divide an interval in equispaced values. Special caution must be taken when energy and potential are equal, since at this point another way of computing T must be used: luckily the method `indexOf` of `LinearSpace` returns the index of a specified value among the equispaced points (or -1 if not present) with complexity O(1) (leveraging the order of the array).
 
 ```javascript
 // fix potential V0, barrier width l, mass m
