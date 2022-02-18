@@ -1318,7 +1318,7 @@ var app = (function () {
     		c() {
     			div = element("div");
     			t = text(t_value);
-    			attr(div, "class", "y-tick svelte-f69zns");
+    			attr(div, "class", "y-tick svelte-1q0x7nj");
     			set_style(div, "--t", /*yScale*/ ctx[6](/*tick*/ ctx[24]) + "px");
     		},
     		m(target, anchor) {
@@ -1348,7 +1348,7 @@ var app = (function () {
     		c() {
     			div = element("div");
     			t = text(t_value);
-    			attr(div, "class", "x-tick svelte-f69zns");
+    			attr(div, "class", "x-tick svelte-1q0x7nj");
     			set_style(div, "--t", /*xScale*/ ctx[5](/*tick*/ ctx[24]) + "px");
     		},
     		m(target, anchor) {
@@ -1380,7 +1380,7 @@ var app = (function () {
     			attr(line, "x1", pad);
     			attr(line, "x2", line_x__value = /*width*/ ctx[0] - pad);
     			attr(line, "transform", line_transform_value = "translate(0, " + /*yScale*/ ctx[6](/*tick*/ ctx[24]) + ")");
-    			attr(line, "class", "svelte-f69zns");
+    			attr(line, "class", "svelte-1q0x7nj");
     		},
     		m(target, anchor) {
     			insert(target, line, anchor);
@@ -1412,7 +1412,7 @@ var app = (function () {
     			attr(line, "y1", pad);
     			attr(line, "y2", line_y__value = /*height*/ ctx[1] - pad);
     			attr(line, "transform", line_transform_value = "translate(" + /*xScale*/ ctx[5](/*tick*/ ctx[24]) + ", 0)");
-    			attr(line, "class", "svelte-f69zns");
+    			attr(line, "class", "svelte-1q0x7nj");
     		},
     		m(target, anchor) {
     			insert(target, line, anchor);
@@ -1502,8 +1502,8 @@ var app = (function () {
     			}
 
     			if (default_slot) default_slot.c();
-    			attr(svg_1, "class", "svelte-f69zns");
-    			attr(div, "class", "axis svelte-f69zns");
+    			attr(svg_1, "class", "svelte-1q0x7nj");
+    			attr(div, "class", "axis svelte-1q0x7nj");
     		},
     		m(target, anchor) {
     			insert(target, div, anchor);
@@ -1975,12 +1975,12 @@ var app = (function () {
     			input = element("input");
     			t2 = space();
     			t3 = text(/*global_length*/ ctx[2]);
-    			attr(h3, "class", "svelte-rp17vo");
+    			attr(h3, "class", "svelte-5n98na");
     			attr(input, "type", "range");
     			attr(input, "min", "0.025");
     			attr(input, "max", "10");
     			attr(input, "step", "0.025");
-    			attr(input, "class", "svelte-rp17vo");
+    			attr(input, "class", "svelte-5n98na");
     		},
     		m(target, anchor) {
     			insert(target, h3, anchor);
@@ -2036,12 +2036,12 @@ var app = (function () {
     			input = element("input");
     			t2 = space();
     			t3 = text(/*global_potential*/ ctx[3]);
-    			attr(h3, "class", "svelte-rp17vo");
+    			attr(h3, "class", "svelte-5n98na");
     			attr(input, "type", "range");
     			attr(input, "min", "0.05");
     			attr(input, "max", "20");
     			attr(input, "step", "0.05");
-    			attr(input, "class", "svelte-rp17vo");
+    			attr(input, "class", "svelte-5n98na");
     		},
     		m(target, anchor) {
     			insert(target, h3, anchor);
@@ -2129,7 +2129,7 @@ var app = (function () {
     			option6.textContent = "quark down";
     			option7 = element("option");
     			option7.textContent = "tau neutrino";
-    			attr(h3, "class", "svelte-rp17vo");
+    			attr(h3, "class", "svelte-5n98na");
     			option0.__value = option0_value_value = 1;
     			option0.value = option0.__value;
     			option1.__value = option1_value_value = 206.77;
@@ -2137,7 +2137,7 @@ var app = (function () {
     			option2.__value = option2_value_value = 1836.1;
     			option2.value = option2.__value;
     			attr(optgroup0, "label", "Precise");
-    			attr(optgroup0, "class", "svelte-rp17vo");
+    			attr(optgroup0, "class", "svelte-5n98na");
     			option3.__value = option3_value_value = 2e-3;
     			option3.value = option3.__value;
     			option4.__value = option4_value_value = 0.33;
@@ -2149,8 +2149,8 @@ var app = (function () {
     			option7.__value = option7_value_value = 35.6;
     			option7.value = option7.__value;
     			attr(optgroup1, "label", "Upperbound");
-    			attr(optgroup1, "class", "svelte-rp17vo");
-    			attr(select, "class", "svelte-rp17vo");
+    			attr(optgroup1, "class", "svelte-5n98na");
+    			attr(select, "class", "svelte-5n98na");
     			if (/*global_mass*/ ctx[4] === void 0) add_render_callback(() => /*select_change_handler_1*/ ctx[17].call(select));
     		},
     		m(target, anchor) {
@@ -2280,11 +2280,11 @@ var app = (function () {
     			button = element("button");
     			t3 = space();
     			attr(input, "type", "color");
-    			attr(input, "class", "svelte-rp17vo");
-    			attr(button, "class", "remove svelte-rp17vo");
+    			attr(input, "class", "svelte-5n98na");
+    			attr(button, "class", "remove svelte-5n98na");
     			attr(button, "data-index", button_data_index_value = /*i*/ ctx[28]);
     			attr(button, "title", "Remove graph");
-    			attr(div, "class", "graph-info svelte-rp17vo");
+    			attr(div, "class", "graph-info svelte-5n98na");
     		},
     		m(target, anchor) {
     			insert(target, div, anchor);
@@ -2664,37 +2664,37 @@ var app = (function () {
 
     			t20 = space();
     			create_component(axis.$$.fragment);
-    			attr(h30, "class", "svelte-rp17vo");
+    			attr(h30, "class", "svelte-5n98na");
     			attr(label0, "for", "#minE");
     			attr(input0, "type", "number");
     			attr(input0, "id", "minE");
     			attr(input0, "min", "0");
     			input0.value = "0";
     			attr(input0, "max", input0_max_value = /*maxE*/ ctx[1] - .01);
-    			attr(input0, "class", "svelte-rp17vo");
+    			attr(input0, "class", "svelte-5n98na");
     			attr(label1, "for", "#maxE");
     			attr(input1, "type", "number");
     			attr(input1, "id", "maxE");
     			attr(input1, "min", input1_min_value = /*minE*/ ctx[0] + .01);
     			input1.value = "15";
-    			attr(input1, "class", "svelte-rp17vo");
-    			attr(div0, "class", "grid2by2 svelte-rp17vo");
-    			attr(h31, "class", "svelte-rp17vo");
+    			attr(input1, "class", "svelte-5n98na");
+    			attr(div0, "class", "grid2by2 svelte-5n98na");
+    			attr(h31, "class", "svelte-5n98na");
     			option0.__value = 0;
     			option0.value = option0.__value;
     			option1.__value = 1;
     			option1.value = option1.__value;
     			option2.__value = 2;
     			option2.value = option2.__value;
-    			attr(select, "class", "svelte-rp17vo");
+    			attr(select, "class", "svelte-5n98na");
     			if (/*mode*/ ctx[5] === void 0) add_render_callback(() => /*select_change_handler*/ ctx[14].call(select));
-    			attr(h32, "class", "svelte-rp17vo");
+    			attr(h32, "class", "svelte-5n98na");
     			attr(input2, "type", "number");
     			attr(input2, "min", "0");
-    			attr(input2, "class", "svelte-rp17vo");
-    			attr(button, "class", "add svelte-rp17vo");
-    			attr(div1, "class", "legends svelte-rp17vo");
-    			attr(div2, "class", "inputs svelte-rp17vo");
+    			attr(input2, "class", "svelte-5n98na");
+    			attr(button, "class", "add svelte-5n98na");
+    			attr(div1, "class", "legends svelte-5n98na");
+    			attr(div2, "class", "inputs svelte-5n98na");
     		},
     		m(target, anchor) {
     			insert(target, div2, anchor);

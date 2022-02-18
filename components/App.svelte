@@ -181,7 +181,7 @@
 	@media (min-width: 100ch) {
 		:global(body) {
 			display: grid;
-			grid-template-columns: 35ch 1fr;
+			grid-template-columns: 33ch 1fr;
 		}
 	}
 	.inputs {

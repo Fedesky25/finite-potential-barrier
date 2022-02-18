@@ -88,7 +88,7 @@
 
 <style>
     .axis {
-        padding: 1em;
+        padding: .7em;
         display: grid;
         grid-template-columns: auto 1fr;
         grid-template-rows: 1fr 1em;
@@ -98,6 +98,12 @@
         height: 100%;
         max-width: 70em;
         max-height: 40em;
+    }
+    @media (min-width: 100ch) {
+        .axis {
+            place-self: center;
+            padding: 2em;
+        }
     }
     .x-tick {
         color: #999;
